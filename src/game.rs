@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub struct Game {
-    pub players_ids: Vec<u64>,
+    pub player_ids: Vec<u64>,
     pub lobby_id: u64,
     pub id: u64,
     pub deck: Deck,
@@ -28,7 +28,7 @@ impl Game {
 
         Self {
             current_player: *random_player,
-            players_ids,
+            player_ids: players_ids,
             lobby_id,
             id,
             deck,
@@ -40,7 +40,7 @@ impl Game {
         GameResponse {
             id: self.id,
             lobby_id: self.lobby_id,
-            players_ids: self.players_ids.clone(),
+            player_ids: self.player_ids.clone(),
             played_cards: self
                 .played_cards
                 .iter()
@@ -62,7 +62,7 @@ pub struct CreateGame {
 pub struct GameResponse {
     pub id: u64,
     pub lobby_id: u64,
-    pub players_ids: Vec<u64>,
+    pub player_ids: Vec<u64>,
     pub played_cards: Vec<CardDTO>,
     pub current_player: u64,
 }
