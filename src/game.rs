@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     card::{Card, CardDTO},
     deck::Deck,
+    player::Player,
 };
 
 pub struct Game {
@@ -16,13 +17,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(
-        players_ids: Vec<u64>,
-        lobby_id: u64,
-        id: u64,
-        deck: Deck,
-        played_cards: Vec<Card>,
-    ) -> Self {
+    pub fn new(players_ids: Vec<u64>, lobby_id: u64, id: u64) -> Self {
         assert!(players_ids.len() > 1);
         let random_player = players_ids.choose(&mut thread_rng()).unwrap();
 
@@ -31,8 +26,19 @@ impl Game {
             player_ids: players_ids,
             lobby_id,
             id,
-            deck,
-            played_cards,
+            deck: Deck::new(),
+            played_cards: vec![],
+        }
+    }
+
+    pub fn give_cards(&mut self, players: &mut [Player]) {
+        for player_id in &self.player_ids {
+            let cards = self.deck.draw_many(5).unwrap();
+            let player = players
+                .iter_mut()
+                .find(|player| player.id == *player_id)
+                .unwrap();
+            player.hand.extend(cards);
         }
     }
 }

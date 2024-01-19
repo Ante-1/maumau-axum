@@ -12,6 +12,7 @@ use crate::{
     card::CardDTO,
     deck::Deck,
     game::{CreateGame, CurrentPlayerGameState, CurrentPlayerGameStatePayload, Game, Opppnent},
+    player,
 };
 
 pub async fn create_game(
@@ -21,6 +22,7 @@ pub async fn create_game(
     let lobby_id = payload.lobby_id;
     let mut lobbies = state.lobbies.lock().expect("mutex was poisoned");
     let mut games = state.games.lock().expect("mutex was poisoned");
+    let mut players = state.players.lock().expect("mutex was poisoned");
 
     let lobby = lobbies.iter_mut().find(|lobby| lobby.id == lobby_id);
 
@@ -40,13 +42,8 @@ pub async fn create_game(
         random_id = rand::random();
     }
 
-    let game = Game::new(
-        lobby.player_ids.clone(),
-        lobby.id,
-        random_id,
-        Deck::new(),
-        vec![],
-    );
+    let mut game = Game::new(lobby.player_ids.clone(), lobby.id, random_id);
+    game.give_cards(&mut players);
 
     games.push(game);
 
