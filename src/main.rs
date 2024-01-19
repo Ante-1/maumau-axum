@@ -6,10 +6,13 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use card::STANARD_DECK;
 use serde::{Deserialize, Serialize};
 use tower::ServiceBuilder;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
+
+mod card;
 
 #[tokio::main]
 async fn main() {
@@ -20,6 +23,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(root))
         .route("/users", post(create_user))
+        .route("/deck", get(deck))
         // middlewares
         .layer(
             ServiceBuilder::new()
@@ -36,6 +40,14 @@ async fn main() {
 
 async fn root() -> &'static str {
     "Hello, World!"
+}
+
+async fn deck() -> impl IntoResponse {
+    let deck = STANARD_DECK
+        .iter()
+        .map(|card| card.to_dto())
+        .collect::<Vec<_>>();
+    Json(deck)
 }
 
 async fn create_user(
