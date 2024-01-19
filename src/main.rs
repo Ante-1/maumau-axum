@@ -9,7 +9,7 @@ use axum::{
     Json, Router,
 };
 use deck::Deck;
-use lobby::{CreateLobby, Lobby};
+use lobby::{CreateLobby, JoinLobby, Lobby};
 use player::{CreatePlayer, Player};
 use tower::ServiceBuilder;
 use tower_http::timeout::TimeoutLayer;
@@ -39,6 +39,7 @@ async fn main() {
         .route("/deck", get(deck))
         .route("/lobbies", post(create_lobby))
         .route("/lobbies", get(get_lobbies))
+        .route("/lobbies/join", post(join_lobby))
         .with_state(app_state)
         // middlewares
         .layer(
@@ -132,6 +133,31 @@ async fn get_lobbies(State(state): State<Arc<AppState>>) -> impl IntoResponse {
         .collect();
 
     Json(lobbies)
+}
+
+async fn join_lobby(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<JoinLobby>,
+) -> impl IntoResponse {
+    let lobby_id = payload.lobby_id;
+    let player_id = payload.player_id;
+    let mut lobbies = state.lobbies.lock().expect("mutex was poisoned");
+    let players = state.players.lock().expect("mutex was poisoned");
+
+    let lobby = lobbies.iter_mut().find(|lobby| lobby.id == lobby_id);
+
+    if lobby.is_none() {
+        return (StatusCode::NOT_FOUND, "lobby not found");
+    }
+
+    let player = players.iter().find(|player| player.id == player_id);
+
+    if player.is_none() {
+        return (StatusCode::NOT_FOUND, "player not found");
+    }
+
+    lobby.unwrap().player_ids.push(player_id);
+    (StatusCode::OK, "player joined lobby")
 }
 
 fn player_id_exists(state: &Arc<AppState>, random_id: u64) -> bool {
