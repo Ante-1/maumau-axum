@@ -9,6 +9,7 @@ use axum::{
     Json, Router,
 };
 use deck::Deck;
+use game::{CreateGame, Game};
 use lobby::{CreateLobby, JoinLobby, Lobby};
 use player::{CreatePlayer, Player};
 use tower::ServiceBuilder;
@@ -40,6 +41,7 @@ async fn main() {
         .route("/lobbies", post(create_lobby))
         .route("/lobbies", get(get_lobbies))
         .route("/lobbies/join", post(join_lobby))
+        .route("/games", post(create_game))
         .with_state(app_state)
         // middlewares
         .layer(
@@ -72,8 +74,9 @@ async fn create_player(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreatePlayer>,
 ) -> impl IntoResponse {
+    let mut players = state.players.lock().expect("mutex was poisoned");
     let mut random_id: u64 = rand::random();
-    while player_id_exists(&state, random_id) {
+    while players.iter().any(|p| p.id == random_id) {
         random_id = rand::random();
     }
 
@@ -81,8 +84,6 @@ async fn create_player(
         id: random_id,
         name: payload.name,
     };
-
-    let mut players = state.players.lock().expect("mutex was poisoned");
 
     players.push(player.clone());
 
@@ -107,7 +108,8 @@ async fn create_lobby(
     Json(playload): Json<CreateLobby>,
 ) -> impl IntoResponse {
     let mut random_id: u64 = rand::random();
-    while lobby_id_exists(&state, random_id) {
+    let mut lobbies = state.lobbies.lock().expect("mutex was poisoned");
+    while lobbies.iter().any(|l| l.id == random_id) {
         random_id = rand::random();
     }
 
@@ -117,7 +119,6 @@ async fn create_lobby(
         player_ids: vec![],
     };
 
-    let mut lobbies = state.lobbies.lock().expect("mutex was poisoned");
     lobbies.push(lobby.clone());
 
     (StatusCode::CREATED, Json(lobby))
@@ -160,20 +161,41 @@ async fn join_lobby(
     (StatusCode::OK, "player joined lobby")
 }
 
-fn player_id_exists(state: &Arc<AppState>, random_id: u64) -> bool {
-    state
-        .players
-        .lock()
-        .expect("mutex was poisoned")
-        .iter()
-        .any(|p| p.id == random_id)
-}
+async fn create_game(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<CreateGame>,
+) -> impl IntoResponse {
+    let lobby_id = payload.lobby_id;
+    let mut lobbies = state.lobbies.lock().expect("mutex was poisoned");
+    let mut games = state.games.lock().expect("mutex was poisoned");
 
-fn lobby_id_exists(state: &Arc<AppState>, random_id: u64) -> bool {
-    state
-        .lobbies
-        .lock()
-        .expect("mutex was poisoned")
-        .iter()
-        .any(|p| p.id == random_id)
+    let lobby = lobbies.iter_mut().find(|lobby| lobby.id == lobby_id);
+
+    if lobby.is_none() {
+        return (StatusCode::NOT_FOUND, "lobby not found");
+    }
+
+    let lobby = lobby.unwrap();
+
+    if lobby.player_ids.len() < 2 {
+        return (StatusCode::BAD_REQUEST, "not enough players");
+    }
+
+    let mut random_id: u64 = rand::random();
+
+    while games.iter().any(|game| game.id == random_id) {
+        random_id = rand::random();
+    }
+
+    let game = Game::new(
+        lobby.player_ids.clone(),
+        lobby.id,
+        random_id,
+        Deck::new(),
+        vec![],
+    );
+
+    games.push(game);
+
+    (StatusCode::CREATED, "game created")
 }
