@@ -8,22 +8,16 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use deck::Deck;
-use game::{CreateGame, Game, GameResponse};
-use lobby::{CreateLobby, JoinLobby, Lobby};
-use player::{CreatePlayer, Player};
+use maumau_axum::{
+    app_state::AppState,
+    deck::Deck,
+    game::{CreateGame, Game, GameResponse},
+    lobby::{CreateLobby, JoinLobby, Lobby},
+    player::{CreatePlayer, Player},
+};
 use tower::ServiceBuilder;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
-
-use crate::app_state::AppState;
-
-mod app_state;
-mod card;
-mod deck;
-mod game;
-mod lobby;
-mod player;
 
 #[tokio::main]
 async fn main() {
