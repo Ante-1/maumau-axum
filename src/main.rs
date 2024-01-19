@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use axum::{
     http::StatusCode,
     response::IntoResponse,
@@ -5,6 +7,8 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
+use tower::ServiceBuilder;
+use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 
 #[tokio::main]
@@ -16,8 +20,13 @@ async fn main() {
     let app = Router::new()
         .route("/", get(root))
         .route("/users", post(create_user))
-        // layer to log all incoming requests
-        .layer(TraceLayer::new_for_http());
+        // middlewares
+        .layer(
+            ServiceBuilder::new()
+                // layer to log all incoming requests
+                .layer(TraceLayer::new_for_http())
+                .layer(TimeoutLayer::new(Duration::from_secs(5))),
+        );
 
     // run our app with hyper
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
