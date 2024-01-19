@@ -7,9 +7,9 @@ use crate::{
 };
 
 pub struct Game {
+    pub id: u64,
     pub player_ids: Vec<u64>,
     pub lobby_id: u64,
-    pub id: u64,
     pub deck: Deck,
     pub played_cards: Vec<Card>,
     pub current_player: u64,
@@ -35,20 +35,6 @@ impl Game {
             played_cards,
         }
     }
-
-    pub fn to_dto(&self) -> GameResponse {
-        GameResponse {
-            id: self.id,
-            lobby_id: self.lobby_id,
-            player_ids: self.player_ids.clone(),
-            played_cards: self
-                .played_cards
-                .iter()
-                .map(|card| card.to_dto())
-                .collect::<Vec<_>>(),
-            current_player: self.current_player,
-        }
-    }
 }
 
 #[derive(Deserialize)]
@@ -56,13 +42,26 @@ impl Game {
 pub struct CreateGame {
     pub lobby_id: u64,
 }
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrentPlayerGameState {
+    pub id: u64,
+    pub hand: Vec<CardDTO>,
+    pub current_player: u64,
+    pub played_cards: Vec<CardDTO>,
+    pub opponents: Vec<Opppnent>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrentPlayerGameStatePayload {
+    pub player_id: u64,
+}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GameResponse {
+pub struct Opppnent {
     pub id: u64,
-    pub lobby_id: u64,
-    pub player_ids: Vec<u64>,
-    pub played_cards: Vec<CardDTO>,
-    pub current_player: u64,
+    pub name: String,
+    pub hand_size: usize,
 }

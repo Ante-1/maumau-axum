@@ -4,7 +4,7 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 
 use crate::{
     app_state::AppState,
-    player::{CreatePlayer, Player},
+    player::{CreatePlayer, Player, PlayerDTO},
 };
 
 pub async fn create_player(
@@ -17,23 +17,23 @@ pub async fn create_player(
         random_id = rand::random();
     }
 
-    let player = Player {
+    let player = PlayerDTO {
         id: random_id,
         name: payload.name,
     };
 
-    players.push(player.clone());
+    players.push(Player::new(player.id, player.name.clone()));
 
     (StatusCode::CREATED, Json(player))
 }
 
 pub async fn get_players(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let players: Vec<Player> = state
+    let players: Vec<PlayerDTO> = state
         .players
         .lock()
         .expect("mutex was poisoned")
         .iter()
-        .cloned()
+        .map(|player| player.to_dto())
         .collect();
 
     Json(players)

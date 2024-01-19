@@ -1,11 +1,17 @@
 use std::sync::Arc;
 
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 
 use crate::{
     app_state::AppState,
+    card::CardDTO,
     deck::Deck,
-    game::{CreateGame, Game, GameResponse},
+    game::{CreateGame, CurrentPlayerGameState, CurrentPlayerGameStatePayload, Game, Opppnent},
 };
 
 pub async fn create_game(
@@ -47,14 +53,59 @@ pub async fn create_game(
     (StatusCode::CREATED, "game created")
 }
 
-pub async fn get_games(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let games: Vec<GameResponse> = state
-        .games
-        .lock()
-        .expect("mutex was poisoned")
-        .iter()
-        .map(|game| game.to_dto())
-        .collect();
+pub async fn get_game_state(
+    State(state): State<Arc<AppState>>,
+    Path(game_id): Path<u64>,
+    Json(payload): Json<CurrentPlayerGameStatePayload>,
+) -> Response {
+    let player_id = payload.player_id;
+    let games = state.games.lock().expect("mutex was poisoned");
+    let players = state.players.lock().expect("mutex was poisoned");
 
-    Json(games)
+    let game = games.iter().find(|game| game.id == game_id);
+
+    if game.is_none() {
+        return (StatusCode::NOT_FOUND, "game not found").into_response();
+    }
+
+    let game = game.unwrap();
+
+    let player = players.iter().find(|player| player.id == player_id);
+
+    if player.is_none() {
+        return (StatusCode::BAD_REQUEST, "player not found").into_response();
+    }
+
+    if !game.player_ids.contains(&player_id) {
+        return (StatusCode::BAD_REQUEST, "player not in game").into_response();
+    }
+
+    let player = player.unwrap();
+
+    let opponents = game
+        .player_ids
+        .iter()
+        .filter(|id| **id != player_id)
+        .map(|id| {
+            let player = players.iter().find(|player| player.id == *id).unwrap();
+            Opppnent {
+                id: player.id,
+                name: player.name.clone(),
+                hand_size: player.hand.len(),
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let hand: Vec<CardDTO> = player.hand.iter().map(|card| card.to_dto()).collect();
+    let played_cards: Vec<CardDTO> = game.played_cards.iter().map(|card| card.to_dto()).collect();
+
+    let game_state = CurrentPlayerGameState {
+        id: game.id,
+        hand,
+        current_player: game.current_player,
+        played_cards,
+        opponents,
+    };
+
+    Json(game_state).into_response()
 }

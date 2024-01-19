@@ -6,7 +6,7 @@ use axum::{
 };
 use maumau_axum::{
     app_state::AppState,
-    game_routes::{create_game, get_games},
+    game_routes::{create_game, get_game_state},
     lobby_routes::{create_lobby, get_lobbies, join_lobby},
     player_routes::{create_player, get_players},
 };
@@ -30,7 +30,7 @@ async fn main() {
         .route("/lobbies", get(get_lobbies))
         .route("/lobbies/join", post(join_lobby))
         .route("/games", post(create_game))
-        .route("/games", get(get_games))
+        .route("/games/:game_id", get(get_game_state))
         .with_state(app_state)
         // middlewares
         .layer(
