@@ -10,15 +10,16 @@ use axum::{
 use crate::{
     app_state::AppState,
     card::CardDTO,
-    deck::Deck,
-    game::{CreateGame, CurrentPlayerGameState, CurrentPlayerGameStatePayload, Game, Opppnent},
-    player,
+    game::{
+        CreateGame, CreateGameResponse, CurrentPlayerGameState, CurrentPlayerGameStatePayload,
+        Game, Opppnent,
+    },
 };
 
 pub async fn create_game(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateGame>,
-) -> impl IntoResponse {
+) -> Response {
     let lobby_id = payload.lobby_id;
     let mut lobbies = state.lobbies.lock().expect("mutex was poisoned");
     let mut games = state.games.lock().expect("mutex was poisoned");
@@ -27,13 +28,13 @@ pub async fn create_game(
     let lobby = lobbies.iter_mut().find(|lobby| lobby.id == lobby_id);
 
     if lobby.is_none() {
-        return (StatusCode::NOT_FOUND, "lobby not found");
+        return (StatusCode::NOT_FOUND, "lobby not found").into_response();
     }
 
     let lobby = lobby.unwrap();
 
     if lobby.player_ids.len() < 2 {
-        return (StatusCode::BAD_REQUEST, "not enough players");
+        return (StatusCode::BAD_REQUEST, "not enough players").into_response();
     }
 
     let mut random_id: u64 = rand::random();
@@ -47,7 +48,11 @@ pub async fn create_game(
 
     games.push(game);
 
-    (StatusCode::CREATED, "game created")
+    (
+        StatusCode::CREATED,
+        Json(CreateGameResponse { game_id: random_id }),
+    )
+        .into_response()
 }
 
 pub async fn get_game_state(

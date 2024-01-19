@@ -48,7 +48,14 @@ impl Game {
 pub struct CreateGame {
     pub lobby_id: u64,
 }
-#[derive(Serialize)]
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateGameResponse {
+    pub game_id: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct CurrentPlayerGameState {
     pub id: u64,
@@ -64,7 +71,7 @@ pub struct CurrentPlayerGameStatePayload {
     pub player_id: u64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Opppnent {
     pub id: u64,

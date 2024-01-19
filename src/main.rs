@@ -30,7 +30,7 @@ async fn main() {
         .route("/lobbies", get(get_lobbies))
         .route("/lobbies/join", post(join_lobby))
         .route("/games", post(create_game))
-        .route("/games/:game_id", get(get_game_state))
+        .route("/games/:game_id", post(get_game_state))
         .with_state(app_state)
         // middlewares
         .layer(

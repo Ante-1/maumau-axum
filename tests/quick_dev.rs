@@ -1,5 +1,9 @@
 use anyhow::Result;
-use maumau_axum::{lobby::Lobby, player::PlayerDTO};
+use maumau_axum::{
+    game::{CreateGameResponse, CurrentPlayerGameState},
+    lobby::Lobby,
+    player::PlayerDTO,
+};
 use serde_json::json;
 
 #[tokio::test]
@@ -44,15 +48,25 @@ async fn quick_dev() -> Result<()> {
     .print()
     .await?;
 
-    hc.do_post(
-        "/games",
-        json!({
-            "lobbyId": lobby.id,
-        }),
-    )
-    .await?
-    .print()
-    .await?;
+    let game: CreateGameResponse = hc
+        .post(
+            "/games",
+            json!({
+                "lobbyId": lobby.id,
+            }),
+        )
+        .await?;
+
+    println!("game_id: {}", game.game_id);
+
+    let game_state: CurrentPlayerGameState = hc
+        .post(
+            &format!("/games/{}", game.game_id),
+            json!({"playerId": player_ante.id}),
+        )
+        .await?;
+
+    println!("game_state: {:?}", game_state);
 
     Ok(())
 }
