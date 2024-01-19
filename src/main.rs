@@ -9,7 +9,7 @@ use axum::{
     Json, Router,
 };
 use deck::Deck;
-use game::{CreateGame, Game};
+use game::{CreateGame, Game, GameResponse};
 use lobby::{CreateLobby, JoinLobby, Lobby};
 use player::{CreatePlayer, Player};
 use tower::ServiceBuilder;
@@ -42,6 +42,7 @@ async fn main() {
         .route("/lobbies", get(get_lobbies))
         .route("/lobbies/join", post(join_lobby))
         .route("/games", post(create_game))
+        .route("/games", get(get_games))
         .with_state(app_state)
         // middlewares
         .layer(
@@ -198,4 +199,16 @@ async fn create_game(
     games.push(game);
 
     (StatusCode::CREATED, "game created")
+}
+
+async fn get_games(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let games: Vec<GameResponse> = state
+        .games
+        .lock()
+        .expect("mutex was poisoned")
+        .iter()
+        .map(|game| game.to_dto())
+        .collect();
+
+    Json(games)
 }
