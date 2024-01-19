@@ -41,6 +41,11 @@ impl Game {
             player.hand.extend(cards);
         }
     }
+
+    pub fn turn_top_card(&mut self) {
+        let card = self.deck.draw().unwrap();
+        self.played_cards.push(card);
+    }
 }
 
 #[derive(Deserialize)]
@@ -77,4 +82,11 @@ pub struct Opppnent {
     pub id: u64,
     pub name: String,
     pub hand_size: usize,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlayCardPayload {
+    pub player_id: u64,
+    pub card: CardDTO,
 }

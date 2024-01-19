@@ -45,6 +45,7 @@ pub async fn create_game(
 
     let mut game = Game::new(lobby.player_ids.clone(), lobby.id, random_id);
     game.give_cards(&mut players);
+    game.turn_top_card();
 
     games.push(game);
 
