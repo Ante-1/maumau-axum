@@ -49,6 +49,12 @@ impl Deck {
     }
 }
 
+impl Default for Deck {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub const STANARD_DECK: [Card; 32] = [
     Card {
         suit: Suit::Clubs,
