@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Suit {
     Clubs,
     Diamonds,
@@ -22,7 +22,7 @@ impl Display for Suit {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Rank {
     Ace,
     Seven,
@@ -50,7 +50,7 @@ impl Display for Rank {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Card {
     pub suit: Suit,
     pub rank: Rank,
@@ -63,6 +63,10 @@ impl Card {
 
     pub fn to_dto(&self) -> CardDTO {
         CardDTO::new(self.clone())
+    }
+
+    pub fn is_playable_on(&self, other: &Card) -> bool {
+        self.suit == other.suit || self.rank == other.rank
     }
 }
 
@@ -79,4 +83,33 @@ impl CardDTO {
             rank: card.rank.to_string(),
         }
     }
+
+    pub fn to_card(&self) -> Result<Card, CardError> {
+        let suit = match self.suit.as_str() {
+            "Clubs" => Suit::Clubs,
+            "Diamonds" => Suit::Diamonds,
+            "Hearts" => Suit::Hearts,
+            "Spades" => Suit::Spades,
+            _ => return Err(CardError::InvalidSuit),
+        };
+
+        let rank = match self.rank.as_str() {
+            "Ace" => Rank::Ace,
+            "7" => Rank::Seven,
+            "8" => Rank::Eight,
+            "9" => Rank::Nine,
+            "10" => Rank::Ten,
+            "Jack" => Rank::Jack,
+            "Queen" => Rank::Queen,
+            "King" => Rank::King,
+            _ => return Err(CardError::InvalidRank),
+        };
+
+        Ok(Card { suit, rank })
+    }
+}
+
+pub enum CardError {
+    InvalidSuit,
+    InvalidRank,
 }

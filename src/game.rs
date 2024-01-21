@@ -14,6 +14,7 @@ pub struct Game {
     pub deck: Deck,
     pub played_cards: Vec<Card>,
     pub current_player: u64,
+    pub winner: Option<u64>,
 }
 
 impl Game {
@@ -28,6 +29,7 @@ impl Game {
             id,
             deck: Deck::new(),
             played_cards: vec![],
+            winner: None,
         }
     }
 
@@ -45,6 +47,25 @@ impl Game {
     pub fn turn_top_card(&mut self) {
         let card = self.deck.draw().unwrap();
         self.played_cards.push(card);
+    }
+
+    pub fn can_play_card(&self, card: &Card) -> bool {
+        let top_card = self.played_cards.last().unwrap();
+        card.is_playable_on(top_card)
+    }
+
+    pub fn play_card(&mut self, card: Card) {
+        self.played_cards.push(card);
+    }
+
+    pub fn next_player(&mut self) {
+        let index = self
+            .player_ids
+            .iter()
+            .position(|id| *id == self.current_player)
+            .unwrap();
+        let next_index = (index + 1) % self.player_ids.len();
+        self.current_player = self.player_ids[next_index];
     }
 }
 

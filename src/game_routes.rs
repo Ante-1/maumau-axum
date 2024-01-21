@@ -12,7 +12,7 @@ use crate::{
     card::CardDTO,
     game::{
         CreateGame, CreateGameResponse, CurrentPlayerGameState, CurrentPlayerGameStatePayload,
-        Game, Opppnent,
+        Game, Opppnent, PlayCardPayload,
     },
 };
 
@@ -21,9 +21,9 @@ pub async fn create_game(
     Json(payload): Json<CreateGame>,
 ) -> Response {
     let lobby_id = payload.lobby_id;
-    let mut lobbies = state.lobbies.lock().expect("mutex was poisoned");
-    let mut games = state.games.lock().expect("mutex was poisoned");
-    let mut players = state.players.lock().expect("mutex was poisoned");
+    let mut games = state.get_games();
+    let mut players = state.get_players();
+    let mut lobbies = state.get_lobbies();
 
     let lobby = lobbies.iter_mut().find(|lobby| lobby.id == lobby_id);
 
@@ -62,27 +62,22 @@ pub async fn get_game_state(
     Json(payload): Json<CurrentPlayerGameStatePayload>,
 ) -> Response {
     let player_id = payload.player_id;
-    let games = state.games.lock().expect("mutex was poisoned");
-    let players = state.players.lock().expect("mutex was poisoned");
 
+    let games = state.get_games();
     let game = games.iter().find(|game| game.id == game_id);
-
     if game.is_none() {
         return (StatusCode::NOT_FOUND, "game not found").into_response();
     }
-
     let game = game.unwrap();
 
+    let players = state.get_players();
     let player = players.iter().find(|player| player.id == player_id);
-
     if player.is_none() {
         return (StatusCode::BAD_REQUEST, "player not found").into_response();
     }
-
     if !game.player_ids.contains(&player_id) {
         return (StatusCode::BAD_REQUEST, "player not in game").into_response();
     }
-
     let player = player.unwrap();
 
     let opponents = game
@@ -111,4 +106,59 @@ pub async fn get_game_state(
     };
 
     Json(game_state).into_response()
+}
+
+pub async fn play_card(
+    State(state): State<Arc<AppState>>,
+    Path(game_id): Path<u64>,
+    Json(payload): Json<PlayCardPayload>,
+) -> Response {
+    let player_id = payload.player_id;
+
+    let mut games = state.get_games();
+    let game = games.iter_mut().find(|game| game.id == game_id);
+    if game.is_none() {
+        return (StatusCode::NOT_FOUND, "game not found").into_response();
+    }
+    let game = game.unwrap();
+
+    let mut players = state.get_players();
+    let player = players.iter_mut().find(|player| player.id == player_id);
+    if player.is_none() {
+        return (StatusCode::BAD_REQUEST, "player not found").into_response();
+    }
+    if !game.player_ids.contains(&player_id) {
+        return (StatusCode::BAD_REQUEST, "player not in game").into_response();
+    }
+    let player = player.unwrap();
+
+    if game.current_player != player_id {
+        return (StatusCode::BAD_REQUEST, "not your turn").into_response();
+    }
+
+    let card = match payload.card.to_card() {
+        Ok(card) => card,
+        Err(_) => return (StatusCode::BAD_REQUEST, "invalid card").into_response(),
+    };
+
+    if !game.can_play_card(&card) {
+        return (StatusCode::BAD_REQUEST, "cannot play card").into_response();
+    }
+
+    match player.remove_card(&card) {
+        Ok(_) => {}
+        Err(_) => return (StatusCode::BAD_REQUEST, "card not in hand").into_response(),
+    }
+    game.play_card(card);
+
+    if player.hand.is_empty() {
+        game.winner = Some(player_id);
+    }
+
+    game.next_player();
+
+    // todo: do i want to return more?
+    // todo: do i want to make game copy and give easy acces methods to gamestate parts?
+    // todo: add play card test
+    (StatusCode::OK, "card played").into_response()
 }

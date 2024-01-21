@@ -23,6 +23,15 @@ impl Player {
             name: self.name.clone(),
         }
     }
+
+    pub fn remove_card(&mut self, card: &Card) -> Result<(), PlayerError> {
+        let index = match self.hand.iter().position(|c| c == card) {
+            Some(index) => index,
+            None => return Err(PlayerError::CardNotInHand),
+        };
+        self.hand.remove(index);
+        Ok(())
+    }
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -34,4 +43,8 @@ pub struct PlayerDTO {
 #[derive(Deserialize)]
 pub struct CreatePlayer {
     pub name: String,
+}
+
+pub enum PlayerError {
+    CardNotInHand,
 }
