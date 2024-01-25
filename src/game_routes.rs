@@ -14,6 +14,7 @@ use crate::{
         CreateGame, CreateGameResponse, CurrentPlayerGameState, CurrentPlayerGameStatePayload,
         Game, Opppnent, PlayCardPayload,
     },
+    player::Player,
 };
 
 pub async fn create_game(
@@ -115,6 +116,45 @@ pub async fn play_card(
 ) -> Response {
     let player_id = payload.player_id;
 
+    with_game_and_player(&state, game_id, player_id, |game, player| {
+        if game.current_player != player_id {
+            return (StatusCode::BAD_REQUEST, "not your turn").into_response();
+        }
+
+        let card = match payload.card.to_card() {
+            Ok(card) => card,
+            Err(_) => return (StatusCode::BAD_REQUEST, "invalid card").into_response(),
+        };
+
+        if !game.can_play_card(&card) {
+            return (StatusCode::BAD_REQUEST, "cannot play card").into_response();
+        }
+
+        match player.remove_card(&card) {
+            Ok(_) => {}
+            Err(_) => return (StatusCode::BAD_REQUEST, "card not in hand").into_response(),
+        }
+        game.play_card(card);
+
+        if player.hand.is_empty() {
+            game.winner = Some(player_id);
+        }
+
+        game.next_player();
+
+        // todo: do i want to return more?
+        // todo: do i want to make game copy and give easy acces methods to gamestate parts?
+        // todo: add play card test
+        (StatusCode::OK, "card played").into_response()
+    })
+}
+
+// using a closure here (f) because the aquired mutex lock is destoyed at the end of the function
+// and references to game and player cannot be returned
+fn with_game_and_player<F>(state: &Arc<AppState>, game_id: u64, player_id: u64, f: F) -> Response
+where
+    F: FnOnce(&mut Game, &mut Player) -> Response,
+{
     let mut games = state.get_games();
     let game = games.iter_mut().find(|game| game.id == game_id);
     if game.is_none() {
@@ -132,33 +172,5 @@ pub async fn play_card(
     }
     let player = player.unwrap();
 
-    if game.current_player != player_id {
-        return (StatusCode::BAD_REQUEST, "not your turn").into_response();
-    }
-
-    let card = match payload.card.to_card() {
-        Ok(card) => card,
-        Err(_) => return (StatusCode::BAD_REQUEST, "invalid card").into_response(),
-    };
-
-    if !game.can_play_card(&card) {
-        return (StatusCode::BAD_REQUEST, "cannot play card").into_response();
-    }
-
-    match player.remove_card(&card) {
-        Ok(_) => {}
-        Err(_) => return (StatusCode::BAD_REQUEST, "card not in hand").into_response(),
-    }
-    game.play_card(card);
-
-    if player.hand.is_empty() {
-        game.winner = Some(player_id);
-    }
-
-    game.next_player();
-
-    // todo: do i want to return more?
-    // todo: do i want to make game copy and give easy acces methods to gamestate parts?
-    // todo: add play card test
-    (StatusCode::OK, "card played").into_response()
+    f(game, player)
 }

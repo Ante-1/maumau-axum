@@ -68,5 +68,16 @@ async fn quick_dev() -> Result<()> {
 
     println!("game_state: {:?}", game_state);
 
+    hc.do_post(
+        &format!("/games/{}/play-card2", game.game_id),
+        json!({
+            "playerId": player_ante.id,
+            "card": game_state.hand.get(0).unwrap(),
+        }),
+    )
+    .await?
+    .print()
+    .await?;
+
     Ok(())
 }
