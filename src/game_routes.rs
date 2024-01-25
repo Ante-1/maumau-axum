@@ -15,6 +15,7 @@ use crate::{
         Game, Opppnent, PlayCardPayload,
     },
     player::Player,
+    player_routes::get_players,
 };
 
 pub async fn create_game(
@@ -64,49 +65,37 @@ pub async fn get_game_state(
 ) -> Response {
     let player_id = payload.player_id;
 
-    let games = state.get_games();
-    let game = games.iter().find(|game| game.id == game_id);
-    if game.is_none() {
-        return (StatusCode::NOT_FOUND, "game not found").into_response();
-    }
-    let game = game.unwrap();
-
     let players = state.get_players();
-    let player = players.iter().find(|player| player.id == player_id);
-    if player.is_none() {
-        return (StatusCode::BAD_REQUEST, "player not found").into_response();
-    }
-    if !game.player_ids.contains(&player_id) {
-        return (StatusCode::BAD_REQUEST, "player not in game").into_response();
-    }
-    let player = player.unwrap();
 
-    let opponents = game
-        .player_ids
-        .iter()
-        .filter(|id| **id != player_id)
-        .map(|id| {
-            let player = players.iter().find(|player| player.id == *id).unwrap();
-            Opppnent {
-                id: player.id,
-                name: player.name.clone(),
-                hand_size: player.hand.len(),
-            }
-        })
-        .collect::<Vec<_>>();
+    with_game_and_player(&state, game_id, player_id, |game, player| {
+        let opponents = game
+            .player_ids
+            .iter()
+            .filter(|id| **id != player_id)
+            .map(|id| {
+                let player = players.iter().find(|player| player.id == *id).unwrap();
+                Opppnent {
+                    id: player.id,
+                    name: player.name.clone(),
+                    hand_size: player.hand.len(),
+                }
+            })
+            .collect::<Vec<_>>();
 
-    let hand: Vec<CardDTO> = player.hand.iter().map(|card| card.to_dto()).collect();
-    let played_cards: Vec<CardDTO> = game.played_cards.iter().map(|card| card.to_dto()).collect();
+        let hand: Vec<CardDTO> = player.hand.iter().map(|card| card.to_dto()).collect();
+        let played_cards: Vec<CardDTO> =
+            game.played_cards.iter().map(|card| card.to_dto()).collect();
 
-    let game_state = CurrentPlayerGameState {
-        id: game.id,
-        hand,
-        current_player: game.current_player,
-        played_cards,
-        opponents,
-    };
+        let game_state = CurrentPlayerGameState {
+            id: game.id,
+            hand,
+            current_player: game.current_player,
+            played_cards,
+            opponents,
+        };
 
-    Json(game_state).into_response()
+        Json(game_state).into_response()
+    })
 }
 
 pub async fn play_card(
