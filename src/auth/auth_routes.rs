@@ -13,7 +13,7 @@ use serde::Deserialize;
 
 use crate::{
     app_state::AppState,
-    user::{AuthSession, Credentials},
+    auth::user::{AuthSession, Credentials},
 };
 
 #[derive(Template)]

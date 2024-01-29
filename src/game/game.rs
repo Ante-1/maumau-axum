@@ -2,9 +2,9 @@ use rand::{seq::SliceRandom, thread_rng};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    card::{Card, CardDTO},
-    deck::Deck,
-    player::Player,
+    game::card::{Card, CardDTO},
+    game::deck::Deck,
+    game::player::Player,
 };
 
 pub struct Game {

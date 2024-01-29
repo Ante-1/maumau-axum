@@ -1,12 +1,4 @@
 pub mod app_state;
-pub mod auth_routes;
-pub mod card;
+pub mod auth;
 pub mod db;
-pub mod deck;
 pub mod game;
-pub mod game_routes;
-pub mod lobby;
-pub mod lobby_routes;
-pub mod player;
-pub mod player_routes;
-pub mod user;

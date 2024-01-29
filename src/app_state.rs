@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use sqlx::{Pool, Sqlite};
 
-use crate::{game::Game, lobby::Lobby, player::Player};
+use crate::game::{game::Game, lobby::Lobby, player::Player};
 
 pub struct AppState {
     pub games: Arc<Mutex<Vec<Game>>>,

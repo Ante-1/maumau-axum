@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::card::Card;
+use crate::game::card::Card;
 
 pub struct Player {
     pub id: u64,

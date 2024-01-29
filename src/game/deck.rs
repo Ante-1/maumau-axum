@@ -1,6 +1,6 @@
 use rand::seq::SliceRandom;
 
-use crate::card::{Card, Rank, Suit};
+use crate::game::card::{Card, Rank, Suit};
 
 pub struct Deck {
     pub cards: Vec<Card>,

@@ -9,12 +9,12 @@ use axum::{
 
 use crate::{
     app_state::AppState,
-    card::CardDTO,
-    game::{
+    game::card::CardDTO,
+    game::game::{
         CreateGame, CreateGameResponse, CurrentPlayerGameState, CurrentPlayerGameStatePayload,
         Game, Opppnent, PlayCardPayload,
     },
-    player::Player,
+    game::player::Player,
 };
 
 pub async fn create_game(

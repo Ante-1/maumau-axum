@@ -4,7 +4,7 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 
 use crate::{
     app_state::AppState,
-    player::{CreatePlayer, Player, PlayerDTO},
+    game::player::{CreatePlayer, Player, PlayerDTO},
 };
 
 pub async fn create_player(

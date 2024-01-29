@@ -1,5 +1,5 @@
 use anyhow::Result;
-use maumau_axum::{
+use maumau_axum::game::{
     game::{CreateGameResponse, CurrentPlayerGameState},
     lobby::Lobby,
     player::PlayerDTO,

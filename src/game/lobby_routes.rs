@@ -4,7 +4,7 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 
 use crate::{
     app_state::AppState,
-    lobby::{CreateLobby, JoinLobby, Lobby},
+    game::lobby::{CreateLobby, JoinLobby, Lobby},
 };
 
 pub async fn create_lobby(

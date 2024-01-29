@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
+use askama_axum::IntoResponse;
 use axum::{
+    debug_handler,
     extract::State,
     http::StatusCode,
     routing::{get, post},
-    Router,
+    Json, Router,
 };
 use axum_login::{
     login_required,
@@ -14,12 +16,12 @@ use axum_login::{
 use axum_messages::MessagesManagerLayer;
 use maumau_axum::{
     app_state::AppState,
-    auth_routes,
+    auth::auth_routes,
+    auth::user::{Backend, User},
     db::db,
-    game_routes::{create_game, get_game_state, play_card},
-    lobby_routes::{create_lobby, get_lobbies, join_lobby},
-    player_routes::{create_player, get_players},
-    user::Backend,
+    game::game_routes::{create_game, get_game_state, play_card},
+    game::lobby_routes::{create_lobby, get_lobbies, join_lobby},
+    game::player_routes::{create_player, get_players},
 };
 use time::Duration;
 use tower::ServiceBuilder;
@@ -74,6 +76,7 @@ async fn main() {
     let app = Router::new()
         .nest("/api", api_routes)
         .route_layer(login_required!(Backend, login_url = "/login"))
+        .route("/users", get(users))
         .route("/", get(root))
         .route("/db", get(using_connection_pool_extractor))
         .merge(auth_routes::router())
@@ -112,4 +115,20 @@ async fn using_connection_pool_extractor(
                 "Something went wrong".to_string(),
             )
         })
+}
+
+#[debug_handler]
+async fn users(State(app_state): State<Arc<AppState>>) -> impl IntoResponse {
+    let users: Vec<User> = sqlx::query_as("select * from users")
+        .fetch_all(&app_state.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("failed to execute query: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Something went wrong".to_string(),
+            )
+        })
+        .expect("asd");
+    Json(users)
 }
