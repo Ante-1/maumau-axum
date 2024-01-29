@@ -8,7 +8,7 @@ use serde_json::json;
 
 #[tokio::test]
 async fn quick_dev() -> Result<()> {
-    let hc = httpc_test::new_client("http://localhost:3000")?;
+    let hc = httpc_test::new_client("http://localhost:3000/api")?;
 
     let player_ante: PlayerDTO = hc.post("/players", json!({"name": "ante"})).await?;
     println!("player_ante_id: {}", player_ante.id);

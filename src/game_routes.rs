@@ -15,7 +15,6 @@ use crate::{
         Game, Opppnent, PlayCardPayload,
     },
     player::Player,
-    player_routes::get_players,
 };
 
 pub async fn create_game(

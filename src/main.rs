@@ -11,6 +11,7 @@ use maumau_axum::{
     player_routes::{create_player, get_players},
 };
 use tower::ServiceBuilder;
+use tower_http::services::ServeDir;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 
@@ -22,8 +23,7 @@ async fn main() {
 
     let app_state = Arc::new(AppState::new());
 
-    let app = Router::new()
-        .route("/", get(root))
+    let api_routes = Router::new()
         .route("/players", post(create_player))
         .route("/players", get(get_players))
         .route("/lobbies", post(create_lobby))
@@ -31,7 +31,11 @@ async fn main() {
         .route("/lobbies/join", post(join_lobby))
         .route("/games", post(create_game))
         .route("/games/:game_id", post(get_game_state))
-        .route("/games/:game_id/play-card", post(play_card))
+        .route("/games/:game_id/play-card", post(play_card));
+    let app = Router::new()
+        .route("/", get(root))
+        .nest("/api", api_routes)
+        .nest_service("/assets", ServeDir::new("assets"))
         .with_state(app_state)
         // middlewares
         .layer(
