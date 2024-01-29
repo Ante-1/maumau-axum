@@ -1,5 +1,6 @@
 pub mod app_state;
 pub mod card;
+pub mod db;
 pub mod deck;
 pub mod game;
 pub mod game_routes;

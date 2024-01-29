@@ -1,11 +1,14 @@
 use std::{sync::Arc, time::Duration};
 
 use axum::{
+    extract::State,
+    http::StatusCode,
     routing::{get, post},
     Router,
 };
 use maumau_axum::{
     app_state::AppState,
+    db::db,
     game_routes::{create_game, get_game_state, play_card},
     lobby_routes::{create_lobby, get_lobbies, join_lobby},
     player_routes::{create_player, get_players},
@@ -20,8 +23,13 @@ async fn main() {
     dotenv::dotenv().ok();
     // initialize tracing
     tracing_subscriber::fmt::init();
+    let pool = db().await;
+    sqlx::migrate!()
+        .run(&pool)
+        .await
+        .expect("could not run SQLx migrations");
 
-    let app_state = Arc::new(AppState::new());
+    let app_state = Arc::new(AppState::new(pool));
 
     let api_routes = Router::new()
         .route("/players", post(create_player))
@@ -34,6 +42,7 @@ async fn main() {
         .route("/games/:game_id/play-card", post(play_card));
     let app = Router::new()
         .route("/", get(root))
+        .route("/db", get(using_connection_pool_extractor))
         .nest("/api", api_routes)
         .nest_service("/assets", ServeDir::new("assets"))
         .with_state(app_state)
@@ -53,4 +62,19 @@ async fn main() {
 
 async fn root() -> &'static str {
     "Hello, World!"
+}
+
+async fn using_connection_pool_extractor(
+    State(app_state): State<Arc<AppState>>,
+) -> Result<String, (StatusCode, String)> {
+    sqlx::query_scalar("select 'hello world from sqlite'")
+        .fetch_one(&app_state.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("failed to execute query: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Something went wrong".to_string(),
+            )
+        })
 }
