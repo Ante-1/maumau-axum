@@ -1,13 +1,7 @@
 use std::sync::Arc;
 
 use askama_axum::IntoResponse;
-use axum::{
-    debug_handler,
-    extract::State,
-    http::StatusCode,
-    routing::{get, post},
-    Json, Router,
-};
+use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
 use axum_login::{
     login_required,
     tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer},
@@ -19,9 +13,7 @@ use maumau_axum::{
     auth::auth_routes,
     auth::user::{Backend, User},
     db::db,
-    game::game_routes::{create_game, get_game_state, play_card},
-    game::lobby_routes::{create_lobby, get_lobbies, join_lobby},
-    game::player_routes::{create_player, get_players},
+    game,
 };
 use time::Duration;
 use tower::ServiceBuilder;
@@ -64,17 +56,8 @@ async fn main() {
     let backend = Backend::new(pool);
     let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
 
-    let api_routes = Router::new()
-        .route("/players", post(create_player))
-        .route("/players", get(get_players))
-        .route("/lobbies", post(create_lobby))
-        .route("/lobbies", get(get_lobbies))
-        .route("/lobbies/join", post(join_lobby))
-        .route("/games", post(create_game))
-        .route("/games/:game_id", post(get_game_state))
-        .route("/games/:game_id/play-card", post(play_card));
     let app = Router::new()
-        .nest("/api", api_routes)
+        .nest("/api", game::router::game_router())
         .route_layer(login_required!(Backend, login_url = "/login"))
         .route("/users", get(users))
         .route("/", get(root))
@@ -117,7 +100,6 @@ async fn using_connection_pool_extractor(
         })
 }
 
-#[debug_handler]
 async fn users(State(app_state): State<Arc<AppState>>) -> impl IntoResponse {
     let users: Vec<User> = sqlx::query_as("select * from users")
         .fetch_all(&app_state.pool)
