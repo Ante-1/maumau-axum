@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use askama_axum::IntoResponse;
 use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
 use axum_login::{
     login_required,
@@ -89,7 +88,7 @@ async fn using_connection_pool_extractor(
     State(app_state): State<Arc<AppState>>,
 ) -> Result<String, (StatusCode, String)> {
     sqlx::query_scalar("select 'hello world from sqlite'")
-        .fetch_one(&app_state.pool)
+        .fetch_one(&app_state.db_conn_pool)
         .await
         .map_err(|e| {
             tracing::error!("failed to execute query: {}", e);
@@ -102,7 +101,7 @@ async fn using_connection_pool_extractor(
 
 async fn users(State(app_state): State<Arc<AppState>>) -> impl IntoResponse {
     let users: Vec<User> = sqlx::query_as("select * from users")
-        .fetch_all(&app_state.pool)
+        .fetch_all(&app_state.db_conn_pool)
         .await
         .map_err(|e| {
             tracing::error!("failed to execute query: {}", e);

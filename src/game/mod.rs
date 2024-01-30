@@ -6,5 +6,4 @@ pub mod game_routes;
 pub mod lobby;
 pub mod lobby_routes;
 pub mod player;
-pub mod player_routes;
 pub mod router;

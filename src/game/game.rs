@@ -2,45 +2,46 @@ use rand::{seq::SliceRandom, thread_rng};
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    auth::user::User,
     game::card::{Card, CardDTO},
-    game::deck::Deck,
     game::player::Player,
+    game::{deck::Deck, player},
 };
 
 pub struct Game {
-    pub id: u64,
-    pub player_ids: Vec<u64>,
-    pub lobby_id: u64,
+    pub id: i64,
+    pub user_ids: Vec<i64>,
+    pub lobby_id: i64,
     pub deck: Deck,
     pub played_cards: Vec<Card>,
-    pub current_player: u64,
-    pub winner: Option<u64>,
+    pub current_turn_player: i64,
+    pub winner: Option<i64>,
+    pub players: Vec<Player>,
 }
 
 impl Game {
-    pub fn new(players_ids: Vec<u64>, lobby_id: u64, id: u64) -> Self {
-        assert!(players_ids.len() > 1);
-        let random_player = players_ids.choose(&mut thread_rng()).unwrap();
+    pub fn new(users: Vec<User>, lobby_id: i64, id: i64) -> Self {
+        assert!(users.len() > 1);
+        let random_player = users.choose(&mut thread_rng()).unwrap();
+        let user_ids = users.iter().map(|user| user.id).collect();
+        let players = users.iter().map(|user| Player::new(user.clone())).collect();
 
         Self {
-            current_player: *random_player,
-            player_ids: players_ids,
+            current_turn_player: random_player.id,
+            user_ids,
             lobby_id,
             id,
             deck: Deck::new(),
             played_cards: vec![],
             winner: None,
+            players,
         }
     }
 
-    pub fn give_cards(&mut self, players: &mut [Player]) {
-        for player_id in &self.player_ids {
-            let cards = self.deck.draw_many(5).unwrap();
-            let player = players
-                .iter_mut()
-                .find(|player| player.id == *player_id)
-                .unwrap();
-            player.hand.extend(cards);
+    pub fn give_cards(&mut self) {
+        for player in &self.players {
+            let new_hand = self.deck.draw_many(5).unwrap();
+            player.hand.extend(new_hand);
         }
     }
 
@@ -60,33 +61,33 @@ impl Game {
 
     pub fn next_player(&mut self) {
         let index = self
-            .player_ids
+            .user_ids
             .iter()
-            .position(|id| *id == self.current_player)
+            .position(|id| *id == self.current_turn_player)
             .unwrap();
-        let next_index = (index + 1) % self.player_ids.len();
-        self.current_player = self.player_ids[next_index];
+        let next_index = (index + 1) % self.user_ids.len();
+        self.current_turn_player = self.user_ids[next_index];
     }
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateGame {
-    pub lobby_id: u64,
+    pub lobby_id: i64,
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateGameResponse {
-    pub game_id: u64,
+    pub game_id: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct CurrentPlayerGameState {
-    pub id: u64,
+    pub game_id: i64,
     pub hand: Vec<CardDTO>,
-    pub current_player: u64,
+    pub current_player: i64,
     pub played_cards: Vec<CardDTO>,
     pub opponents: Vec<Opppnent>,
 }
@@ -100,7 +101,7 @@ pub struct CurrentPlayerGameStatePayload {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Opppnent {
-    pub id: u64,
+    pub id: i64,
     pub name: String,
     pub hand_size: usize,
 }
@@ -108,6 +109,5 @@ pub struct Opppnent {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayCardPayload {
-    pub player_id: u64,
     pub card: CardDTO,
 }
