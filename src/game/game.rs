@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     auth::user::User,
     game::card::{Card, CardDTO},
+    game::deck::Deck,
     game::player::Player,
-    game::{deck::Deck, player},
 };
 
 pub struct Game {
@@ -39,7 +39,7 @@ impl Game {
     }
 
     pub fn give_cards(&mut self) {
-        for player in &self.players {
+        for player in &mut self.players {
             let new_hand = self.deck.draw_many(5).unwrap();
             player.hand.extend(new_hand);
         }
