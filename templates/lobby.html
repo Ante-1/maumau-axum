@@ -6,18 +6,13 @@
     <title>Mau Mau</title>
   </head>
   <body>
-    <h1>Mau Mau</h1>
-    <h2>Lobbies</h2>
+    <h1>Lobby {{ lobby.name }}</h1>
+    <h2>Players</h2>
     <ul>
-      {% for lobby in lobbies %}
-      <li>
-        <a href="/lobby/{{ lobby.id }}" hx-get="/lobby/{{ lobby.id }}"
-          >{{ lobby.name }}</a
-        >
-      </li>
+      {% for player in players %}
+      <li>{{ player }}</li>
       {% endfor %}
     </ul>
-    <button>Create Lobby</button>
-    <button>Create Account</button>
+    <button>Start Game</button>
   </body>
 </html>

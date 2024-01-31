@@ -12,7 +12,7 @@ use maumau_axum::{
     auth::auth_routes,
     auth::user::{Backend, User},
     db::db,
-    game,
+    game, htmx_ui,
 };
 use time::Duration;
 use tower::ServiceBuilder;
@@ -59,7 +59,7 @@ async fn main() {
         .nest("/api", game::router::game_router())
         .route_layer(login_required!(Backend, login_url = "/login"))
         .route("/users", get(users))
-        .route("/", get(root))
+        .merge(htmx_ui::router())
         .route("/db", get(using_connection_pool_extractor))
         .merge(auth_routes::router())
         .layer(MessagesManagerLayer)
@@ -78,10 +78,6 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
-}
-
-async fn root() -> &'static str {
-    "Hello, World!"
 }
 
 async fn using_connection_pool_extractor(

@@ -49,29 +49,30 @@ pub async fn create_game(
 
     let lobby = lobby.unwrap();
 
-    if lobby.user_ids.len() < 2 {
-        return (StatusCode::BAD_REQUEST, "not enough players").into_response();
-    }
+    todo!()
+    // if lobby.user_ids.len() < 2 {
+    //     return (StatusCode::BAD_REQUEST, "not enough players").into_response();
+    // }
 
-    let mut new_game_id: i64 = rand::random();
+    // let mut new_game_id: i64 = rand::random();
 
-    while games.iter().any(|game| game.id == new_game_id) {
-        new_game_id = rand::random();
-    }
+    // while games.iter().any(|game| game.id == new_game_id) {
+    //     new_game_id = rand::random();
+    // }
 
-    let mut game = Game::new(users, lobby.id, new_game_id);
-    game.give_cards();
-    game.turn_top_card();
+    // let mut game = Game::new(users, lobby.id, new_game_id);
+    // game.give_cards();
+    // game.turn_top_card();
 
-    games.push(game);
+    // games.push(game);
 
-    (
-        StatusCode::CREATED,
-        Json(CreateGameResponse {
-            game_id: new_game_id,
-        }),
-    )
-        .into_response()
+    // (
+    //     StatusCode::CREATED,
+    //     Json(CreateGameResponse {
+    //         game_id: new_game_id,
+    //     }),
+    // )
+    //     .into_response()
 }
 
 pub async fn get_game_state(
