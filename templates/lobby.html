@@ -2,17 +2,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="assets/htmx@1.9.0.js"></script>
+    <script src="/assets/htmx@1.9.0.js"></script>
     <title>Mau Mau</title>
   </head>
   <body>
     <h1>Lobby {{ lobby.name }}</h1>
     <h2>Players</h2>
-    <ul>
-      {% for player in players %}
-      <li>{{ player }}</li>
-      {% endfor %}
-    </ul>
+    <div hx-get="{{ players_route }}" hx-trigger="every 1s"></div>
+    {% if is_lobby_owner %}
     <button>Start Game</button>
+    {% endif %} {% if not_joined %}
+    <button hx-post="{{ players_route }}">Join Lobby</button>
+    {% endif %}
   </body>
 </html>

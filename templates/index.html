@@ -2,7 +2,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="assets/htmx@1.9.0.js"></script>
+    <script src="/assets/htmx@1.9.0.js"></script>
     <title>Mau Mau</title>
   </head>
   <body>
@@ -16,8 +16,12 @@
       {% endfor %}
     </ul>
     {% if is_logged_in %}
-    <button hx-post="/lobbies" hx-target="html">Create Lobby</button>
+    <form hx-post="/lobbies">
+      <button type="submit">Create Lobby</button>
+    </form>
     {% else %}
+    <a href="/login">Login</a>
+    <p>or</p>
     <a href="/register">Create Account</a>
     {% endif %}
   </body>

@@ -40,7 +40,7 @@ pub fn create_new_lobby(
     let user = auth_session.user.unwrap();
     let mut new_lobby_id: i64 = rand::random();
     let mut lobbies = state.lobbies.lock().expect("mutex was poisoned");
-    while lobbies.iter().any(|l| l.id == new_lobby_id) {
+    while new_lobby_id < 0 || lobbies.iter().any(|l| l.id == new_lobby_id) {
         new_lobby_id = rand::random();
     }
     let lobby = Lobby {
