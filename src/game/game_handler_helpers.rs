@@ -27,7 +27,7 @@ pub fn create_game(state: Arc<AppState>, lobby_id: i64) -> Result<i64, Response>
 
     let mut new_game_id: i64 = rand::random();
 
-    while games.iter().any(|game| game.id == new_game_id) {
+    while new_game_id < 0 || games.iter().any(|game| game.id == new_game_id) {
         new_game_id = rand::random();
     }
 

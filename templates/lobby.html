@@ -10,7 +10,9 @@
     <h2>Players</h2>
     <div hx-get="{{ players_route }}" hx-trigger="every 1s"></div>
     {% if is_lobby_owner %}
-    <button hx-post="{{ create_game_route }}">Start Game</button>
+    <button hx-post="/games" hx-vals='{"lobby_id": "{{ lobby.id }}"}'>
+      Start Game
+    </button>
     {% endif %} {% if not_joined %}
     <button hx-post="{{ players_route }}">Join Lobby</button>
     {% endif %}

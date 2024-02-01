@@ -9,7 +9,6 @@ pub struct LobbyTemplate {
     players_route: String,
     is_lobby_owner: bool,
     not_joined: bool,
-    create_game_route: String,
     check_game_started_route: String,
 }
 
@@ -54,7 +53,6 @@ pub mod get {
             lobby,
             is_lobby_owner,
             not_joined,
-            create_game_route: format!("/games/{}", lobby_id),
             check_game_started_route: format!("/lobbies/{}/started", lobby_id),
         }
         .into_response()

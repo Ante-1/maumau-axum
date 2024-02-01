@@ -1,4 +1,5 @@
 use askama::Template;
+use serde::Deserialize;
 
 use crate::game::{card::CardDTO, player::PlayerDTO};
 
@@ -11,6 +12,12 @@ pub struct GameTemplate {
     is_my_turn: bool,
     winner: Option<PlayerDTO>,
     last_played_card: CardDTO,
+    play_card_route: String,
+}
+
+#[derive(Deserialize)]
+pub struct StartGameParams {
+    pub lobby_id: i64,
 }
 
 pub mod get {
@@ -60,6 +67,7 @@ pub mod get {
                 .last()
                 .unwrap()
                 .clone(),
+            play_card_route: format!("/games/{}/play_card", game_id),
         }
         .into_response()
     }
@@ -68,18 +76,21 @@ pub mod get {
 pub mod post {
     use std::sync::Arc;
 
-    use axum::extract::{Path, State};
+    use axum::extract::State;
     use axum::http::StatusCode;
     use axum::response::IntoResponse;
+    use axum::Form;
 
     use crate::app_state::AppState;
     use crate::game::game_handler_helpers::create_game;
 
+    use super::StartGameParams;
+
     pub async fn create_game_handler(
         State(state): State<Arc<AppState>>,
-        Path(lobby_id): Path<i64>,
+        Form(params): Form<StartGameParams>,
     ) -> impl IntoResponse {
-        let new_game_id = match create_game(state, lobby_id) {
+        let new_game_id = match create_game(state, params.lobby_id) {
             Ok(new_game_id) => new_game_id,
             Err(error_response) => return error_response,
         };

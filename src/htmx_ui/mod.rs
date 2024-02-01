@@ -23,5 +23,5 @@ pub fn router() -> Router<Arc<AppState>> {
             get(lobby_page::get::check_game_started),
         )
         .route("/games/:id", get(game_page::get::game_handler))
-        .route("/games/:id", post(game_page::post::create_game_handler))
+        .route("/games", post(game_page::post::create_game_handler))
 }
