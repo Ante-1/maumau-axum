@@ -47,6 +47,8 @@ pub fn router() -> Router<Arc<AppState>> {
 }
 
 mod post {
+    use crate::auth::user::User;
+
     use super::*;
 
     pub async fn login(
@@ -88,6 +90,21 @@ mod post {
         messages: Messages,
         Form(creds): Form<Credentials>,
     ) -> impl IntoResponse {
+        let users: Vec<User> = match sqlx::query_as("select * from users")
+            .fetch_all(auth_session.backend.db())
+            .await
+        {
+            Ok(users) => users,
+            Err(_) => {
+                messages.error("Failed to register");
+                return Redirect::to("/register").into_response();
+            }
+        };
+        if users.iter().any(|user| user.username == creds.username) {
+            messages.error("Username already taken");
+            return Redirect::to("/register").into_response();
+        }
+
         let user = sqlx::query("insert into users (username, password) values (?, ?)")
             .bind(creds.username.clone())
             .bind(password_auth::generate_hash(creds.password))
