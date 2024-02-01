@@ -6,6 +6,7 @@ pub struct Lobby {
     pub id: i64,
     pub name: String,
     pub players: Vec<LobbyPlayer>,
+    pub running_game: Option<i64>,
 }
 
 #[derive(Deserialize)]

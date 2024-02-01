@@ -50,6 +50,7 @@ pub fn create_lobby(
             user_id: user.id,
             username: user.username,
         }],
+        running_game: None,
     };
     lobbies.push(lobby.clone());
     Ok(lobby)

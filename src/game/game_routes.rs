@@ -37,9 +37,9 @@ pub async fn create_game_handler(
 
 pub fn create_game(state: Arc<AppState>, lobby_id: i64) -> Result<i64, Response> {
     let mut games = state.get_games();
-    let lobbies = state.get_lobbies();
+    let mut lobbies = state.get_lobbies();
 
-    let lobby = match lobbies.iter().find(|lobby| lobby.id == lobby_id) {
+    let lobby = match lobbies.iter_mut().find(|lobby| lobby.id == lobby_id) {
         Some(value) => value,
         None => return Err((StatusCode::NOT_FOUND, "lobby not found").into_response()),
     };
@@ -55,6 +55,7 @@ pub fn create_game(state: Arc<AppState>, lobby_id: i64) -> Result<i64, Response>
     }
 
     let mut game = Game::new(lobby.players.clone(), lobby.id, new_game_id);
+    lobby.running_game = Some(new_game_id);
     game.give_cards();
     game.turn_top_card();
 

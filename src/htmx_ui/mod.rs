@@ -18,6 +18,10 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/lobbies", post(lobby_page::post::create_lobby_handler))
         .route("/lobbies/:id/players", get(lobby_page::get::lobby_players))
         .route("/lobbies/:id/players", post(lobby_page::post::join_lobby))
+        .route(
+            "/lobbies/:id/started",
+            get(lobby_page::get::check_game_started),
+        )
         .route("/games/:id", get(game_page::get::game_handler))
         .route("/games/:id", post(game_page::post::create_game_handler))
 }

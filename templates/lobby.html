@@ -14,5 +14,6 @@
     {% endif %} {% if not_joined %}
     <button hx-post="{{ players_route }}">Join Lobby</button>
     {% endif %}
+    <div hx-get="{{ check_game_started_route }}" hx-trigger="every 1s"></div>
   </body>
 </html>

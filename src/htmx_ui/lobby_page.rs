@@ -10,6 +10,7 @@ pub struct LobbyTemplate {
     is_lobby_owner: bool,
     not_joined: bool,
     create_game_route: String,
+    check_game_started_route: String,
 }
 
 #[derive(Template)]
@@ -54,6 +55,7 @@ pub mod get {
             is_lobby_owner,
             not_joined,
             create_game_route: format!("/games/{}", lobby_id),
+            check_game_started_route: format!("/lobbies/{}/started", lobby_id),
         }
         .into_response()
     }
@@ -73,6 +75,25 @@ pub mod get {
         let players: Vec<String> = players.iter().map(|p| p.username.clone()).collect();
 
         PlayersTemplate { players }.into_response()
+    }
+
+    pub async fn check_game_started(
+        Path(lobby_id): Path<i64>,
+        State(state): State<Arc<AppState>>,
+    ) -> Response {
+        let lobbies = state.get_lobbies();
+        let lobby = match lobbies.iter().find(|l| l.id == lobby_id) {
+            Some(value) => value,
+            None => return (StatusCode::NOT_FOUND, "Not Found").into_response(),
+        };
+        match lobby.running_game {
+            Some(game_id) => (
+                [("HX-Redirect", format!("/games/{}", game_id))],
+                StatusCode::CREATED,
+            )
+                .into_response(),
+            None => (StatusCode::OK).into_response(),
+        }
     }
 }
 
