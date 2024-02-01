@@ -20,11 +20,8 @@ pub mod get {
     use axum::extract::{Path, State};
     use axum::response::Response;
 
-    use crate::{
-        app_state::AppState,
-        auth::user::AuthSession,
-        game::{game_routes::get_game_state, player::PlayerDTO},
-    };
+    use crate::game::game_handler_helpers::get_game_state;
+    use crate::{app_state::AppState, auth::user::AuthSession, game::player::PlayerDTO};
 
     use super::GameTemplate;
 
@@ -75,7 +72,8 @@ pub mod post {
     use axum::http::StatusCode;
     use axum::response::IntoResponse;
 
-    use crate::{app_state::AppState, game::game_routes::create_game};
+    use crate::app_state::AppState;
+    use crate::game::game_handler_helpers::create_game;
 
     pub async fn create_game_handler(
         State(state): State<Arc<AppState>>,

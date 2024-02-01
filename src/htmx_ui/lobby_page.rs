@@ -109,7 +109,7 @@ pub mod post {
     use crate::{
         app_state::AppState,
         auth::user::AuthSession,
-        game::{lobby::LobbyPlayer, lobby_routes::create_lobby},
+        game::lobby_handler_helpers::{create_lobby, join_lobby_helper},
     };
 
     pub async fn create_lobby_handler(
@@ -140,19 +140,10 @@ pub mod post {
         State(state): State<Arc<AppState>>,
         auth_session: AuthSession,
     ) -> impl IntoResponse {
-        let mut lobbies = state.get_lobbies();
-        let lobby = match lobbies.iter_mut().find(|l| l.id == lobby_id) {
-            Some(value) => value,
-            None => return (StatusCode::NOT_FOUND, "Not Found").into_response(),
+        let lobby_id = match join_lobby_helper(state, lobby_id, auth_session) {
+            Ok(value) => value,
+            Err(value) => return value,
         };
-        let user = match auth_session.user {
-            Some(value) => value,
-            None => return (StatusCode::UNAUTHORIZED, "Unauthorized").into_response(),
-        };
-        lobby.players.push(LobbyPlayer {
-            user_id: user.id,
-            username: user.username,
-        });
-        ([("HX-Redirect", format!("/lobbies/{}", lobby.id))]).into_response()
+        ([("HX-Redirect", format!("/lobbies/{}", lobby_id))]).into_response()
     }
 }

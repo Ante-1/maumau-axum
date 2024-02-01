@@ -1,3 +1,5 @@
+mod game_handlers;
+mod lobby_handlers;
 use std::sync::Arc;
 
 use axum::{
@@ -7,11 +9,12 @@ use axum::{
 
 use crate::app_state::AppState;
 
-use super::{
-    game_routes::{create_game_handler, get_game_state_handler, play_card},
-    lobby_routes::{create_lobby_handler, get_lobbies, join_lobby},
+use self::{
+    game_handlers::{create_game_handler, get_game_state_handler, play_card},
+    lobby_handlers::{create_lobby_handler, get_lobbies, join_lobby},
 };
-pub fn game_router() -> Router<Arc<AppState>> {
+
+pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/lobbies", post(create_lobby_handler))
         .route("/lobbies", get(get_lobbies))

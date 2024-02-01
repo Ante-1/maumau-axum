@@ -2,8 +2,7 @@
 pub mod card;
 pub mod deck;
 pub mod game;
-pub mod game_routes;
+pub mod game_handler_helpers;
 pub mod lobby;
-pub mod lobby_routes;
+pub mod lobby_handler_helpers;
 pub mod player;
-pub mod router;
