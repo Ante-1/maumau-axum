@@ -9,6 +9,7 @@ pub struct LobbyTemplate {
     players_route: String,
     is_lobby_owner: bool,
     not_joined: bool,
+    create_game_route: String,
 }
 
 #[derive(Template)]
@@ -52,6 +53,7 @@ pub mod get {
             lobby,
             is_lobby_owner,
             not_joined,
+            create_game_route: format!("/games/{}", lobby_id),
         }
         .into_response()
     }
@@ -86,10 +88,10 @@ pub mod post {
     use crate::{
         app_state::AppState,
         auth::user::AuthSession,
-        game::{lobby::LobbyPlayer, lobby_routes::create_new_lobby},
+        game::{lobby::LobbyPlayer, lobby_routes::create_lobby},
     };
 
-    pub async fn create_lobby(
+    pub async fn create_lobby_handler(
         State(state): State<Arc<AppState>>,
         auth_session: AuthSession,
     ) -> impl IntoResponse {
@@ -97,7 +99,7 @@ pub mod post {
             Some(value) => value.username,
             None => return Redirect::to("/login").into_response(),
         };
-        let lobby = match create_new_lobby(
+        let lobby = match create_lobby(
             auth_session,
             state,
             format!("{}'s lobby", username).as_str(),
@@ -105,7 +107,11 @@ pub mod post {
             Ok(value) => value,
             Err(value) => return value,
         };
-        ([("HX-Redirect", format!("/lobbies/{}", lobby.id))]).into_response()
+        (
+            [("HX-Redirect", format!("/lobbies/{}", lobby.id))],
+            StatusCode::CREATED,
+        )
+            .into_response()
     }
 
     pub async fn join_lobby(

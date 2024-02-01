@@ -16,9 +16,7 @@
       {% endfor %}
     </ul>
     {% if is_logged_in %}
-    <form hx-post="/lobbies">
-      <button type="submit">Create Lobby</button>
-    </form>
+    <button hx-post="/lobbies">Create Lobby</button>
     {% else %}
     <a href="/login">Login</a>
     <p>or</p>

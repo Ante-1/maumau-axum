@@ -1,21 +1,27 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{auth::user::User, game::card::Card};
+use crate::game::card::Card;
+
+use super::lobby::LobbyPlayer;
 
 pub struct Player {
-    pub user: User,
+    pub lobby_player: LobbyPlayer,
     pub hand: Vec<Card>,
 }
 
 impl Player {
-    pub fn new(user: User) -> Self {
-        Self { user, hand: vec![] }
+    pub fn new(player: LobbyPlayer) -> Self {
+        Self {
+            lobby_player: player,
+            hand: vec![],
+        }
     }
 
     pub fn to_dto(&self) -> PlayerDTO {
         PlayerDTO {
-            user_id: self.user.id,
-            username: self.user.username.clone(),
+            user_id: self.lobby_player.user_id,
+            username: self.lobby_player.username.clone(),
+            hand_size: self.hand.len(),
         }
     }
 
@@ -29,10 +35,11 @@ impl Player {
     }
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct PlayerDTO {
     pub username: String,
     pub user_id: i64,
+    pub hand_size: usize,
 }
 
 #[derive(Deserialize)]

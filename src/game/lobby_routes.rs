@@ -15,13 +15,13 @@ use crate::{
 
 use super::lobby::LobbyPlayer;
 
-pub async fn create_lobby(
+pub async fn create_lobby_handler(
     State(state): State<Arc<AppState>>,
     auth_session: AuthSession,
     Json(playload): Json<CreateLobby>,
 ) -> Response {
     let lobby_name = &playload.name;
-    let lobby = match create_new_lobby(auth_session, state, lobby_name) {
+    let lobby = match create_lobby(auth_session, state, lobby_name) {
         Ok(value) => value,
         Err(value) => return value,
     };
@@ -29,11 +29,11 @@ pub async fn create_lobby(
     (StatusCode::CREATED, Json(lobby)).into_response()
 }
 
-pub fn create_new_lobby(
+pub fn create_lobby(
     auth_session: AuthSession,
     state: Arc<AppState>,
     lobby_name: &str,
-) -> Result<Lobby, axum::http::Response<axum::body::Body>> {
+) -> Result<Lobby, Response> {
     if auth_session.user.is_none() {
         return Err((StatusCode::UNAUTHORIZED, "unauthorized").into_response());
     }

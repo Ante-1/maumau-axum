@@ -1,0 +1,46 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="/assets/htmx@1.9.0.js"></script>
+    <title>Mau Mau</title>
+  </head>
+  <body>
+    <div>
+      {% for player in other_players %}
+      <div>
+        {% if player.user_id == current_turn_player %}
+        <h2>{{ player.username }}*</h2>
+        {% else %}
+        <h2>{{ player.username }}</h2>
+        {% endif %}
+        <p>{{ player.hand_size }} cards</p>
+      </div>
+      {% endfor %}
+    </div>
+    <div>
+      <h2>Your Hand</h2>
+      <div>
+        {% for card in my_hand %}
+        <div>
+          <p>{{ card.suit }} {{ card.rank }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <h2>Last played Card</h2>
+      <div>
+        <div>
+          <p>{{ last_played_card.suit }} {{ last_played_card.rank }}</p>
+        </div>
+      </div>
+    </div>
+    {% if let Some(winner) = winner %}
+    <h2>{{ winner.username }} won!</h2>
+    {% endif %} {% if is_my_turn %}
+    <p>your turn</p>
+    {% endif %}
+    <h2></h2>
+  </body>
+</html>

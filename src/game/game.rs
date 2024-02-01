@@ -2,15 +2,15 @@ use rand::{seq::SliceRandom, thread_rng};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    auth::user::User,
     game::card::{Card, CardDTO},
     game::deck::Deck,
     game::player::Player,
 };
 
+use super::{lobby::LobbyPlayer, player::PlayerDTO};
+
 pub struct Game {
     pub id: i64,
-    pub user_ids: Vec<i64>,
     pub lobby_id: i64,
     pub deck: Deck,
     pub played_cards: Vec<Card>,
@@ -20,15 +20,16 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(users: Vec<User>, lobby_id: i64, id: i64) -> Self {
-        assert!(users.len() > 1);
-        let random_player = users.choose(&mut thread_rng()).unwrap();
-        let user_ids = users.iter().map(|user| user.id).collect();
-        let players = users.iter().map(|user| Player::new(user.clone())).collect();
+    pub fn new(players: Vec<LobbyPlayer>, lobby_id: i64, id: i64) -> Self {
+        assert!(players.len() > 1);
+        let random_player = players.choose(&mut thread_rng()).unwrap();
+        let players = players
+            .iter()
+            .map(|player| Player::new(player.clone()))
+            .collect();
 
         Self {
-            current_turn_player: random_player.id,
-            user_ids,
+            current_turn_player: random_player.user_id,
             lobby_id,
             id,
             deck: Deck::new(),
@@ -61,12 +62,12 @@ impl Game {
 
     pub fn next_player(&mut self) {
         let index = self
-            .user_ids
+            .players
             .iter()
-            .position(|id| *id == self.current_turn_player)
+            .position(|player| player.lobby_player.user_id == self.current_turn_player)
             .unwrap();
-        let next_index = (index + 1) % self.user_ids.len();
-        self.current_turn_player = self.user_ids[next_index];
+        let next_index = (index + 1) % self.players.len();
+        self.current_turn_player = self.players[next_index].lobby_player.user_id;
     }
 }
 
@@ -89,21 +90,14 @@ pub struct CurrentPlayerGameState {
     pub hand: Vec<CardDTO>,
     pub current_player: i64,
     pub played_cards: Vec<CardDTO>,
-    pub opponents: Vec<Opppnent>,
+    pub opponents: Vec<PlayerDTO>,
+    pub winner: Option<i64>,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CurrentPlayerGameStatePayload {
     pub player_id: u64,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct Opppnent {
-    pub id: i64,
-    pub name: String,
-    pub hand_size: usize,
 }
 
 #[derive(Deserialize)]

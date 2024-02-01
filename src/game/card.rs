@@ -70,7 +70,7 @@ impl Card {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CardDTO {
     pub suit: String,
     pub rank: String,
