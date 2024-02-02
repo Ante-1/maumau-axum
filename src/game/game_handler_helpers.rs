@@ -7,8 +7,8 @@ use std::sync::Arc;
 use crate::{app_state::AppState, auth::user::AuthSession};
 
 use super::{
-    card::CardDTO,
-    game::{CurrentPlayerGameState, Game},
+    card::{CardDTO, Rank},
+    game::{CurrentPlayerGameState, Game, ViableAction},
     player::PlayerDTO,
 };
 
@@ -89,6 +89,65 @@ pub fn get_game_state(
             hand_size: player.hand.len(),
         })
         .collect::<Vec<_>>();
+
+    let playable_cards: Vec<u8> = player
+        .hand
+        .iter()
+        .filter(|card| game.can_play_card(card))
+        .map(|card| card.id)
+        .collect();
+
+    // handle special cards
+    let last_played_card = game.played_cards.last().unwrap();
+    let mut viable_actions: Vec<ViableAction> = vec![];
+
+    let current_player_drew_2 = match &game.last_action {
+        Some(action) => {
+            action.action == ViableAction::DrawManyCards(2) && action.player_id == user_id
+        }
+        None => false,
+    };
+
+    if last_played_card.rank == Rank::Seven && !current_player_drew_2 {
+        let playable_sevens: Vec<u8> = player
+            .hand
+            .iter()
+            .filter(|card| card.rank == Rank::Seven)
+            .map(|card| card.id)
+            .collect();
+        if !playable_sevens.is_empty() {
+            playable_sevens.iter().for_each(|card_id| {
+                viable_actions.push(ViableAction::PlayCard(*card_id));
+            });
+        } else {
+            viable_actions.push(ViableAction::DrawManyCards(2));
+        }
+    } else if last_played_card.rank == Rank::Jack {
+        // last player decided to change suit to suit_decided_by_jack
+        let suit_decided_by_jack = game.suit_decided_by_jack.clone().unwrap();
+        let playable_cards: Vec<u8> = player
+            .hand
+            .iter()
+            .filter(|card| card.suit == suit_decided_by_jack)
+            .map(|card| card.id)
+            .collect();
+        if !playable_cards.is_empty() {
+            playable_cards.iter().for_each(|card_id| {
+                viable_actions.push(ViableAction::PlayCard(*card_id));
+            });
+        } else {
+            viable_actions.push(ViableAction::DrawCard);
+        }
+    } else if !playable_cards.is_empty() {
+        playable_cards.iter().for_each(|card_id| {
+            viable_actions.push(ViableAction::PlayCard(*card_id));
+        });
+    } else {
+        viable_actions.push(ViableAction::DrawCard);
+    }
+
+    // end of handling special cards
+
     let game_state = CurrentPlayerGameState {
         game_id,
         hand,
@@ -97,6 +156,7 @@ pub fn get_game_state(
         opponents,
         winner: game.winner,
         deck_size: game.deck_size(),
+        viable_actions,
     };
     Ok(game_state)
 }

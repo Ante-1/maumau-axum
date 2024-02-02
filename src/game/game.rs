@@ -1,13 +1,14 @@
 use rand::{seq::SliceRandom, thread_rng};
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 use crate::{
     game::card::{Card, CardDTO},
-    game::deck::Deck,
     game::player::Player,
+    game::{card::STANARD_DECK, deck::Deck},
 };
 
-use super::{lobby::LobbyPlayer, player::PlayerDTO};
+use super::{card::Suit, lobby::LobbyPlayer, player::PlayerDTO};
 
 pub struct Game {
     pub id: i64,
@@ -17,6 +18,14 @@ pub struct Game {
     pub current_turn_player: i64,
     pub winner: Option<i64>,
     pub players: Vec<Player>,
+    pub suit_decided_by_jack: Option<Suit>,
+    pub last_action: Option<LastAction>,
+}
+
+#[derive(PartialEq)]
+pub struct LastAction {
+    pub action: ViableAction,
+    pub player_id: i64,
 }
 
 impl Game {
@@ -36,6 +45,8 @@ impl Game {
             played_cards: vec![],
             winner: None,
             players,
+            suit_decided_by_jack: None,
+            last_action: None,
         }
     }
 
@@ -55,7 +66,7 @@ impl Game {
         self.played_cards.push(card);
     }
 
-    fn can_play_card(&self, card: &Card) -> bool {
+    pub fn can_play_card(&self, card: &Card) -> bool {
         let top_card = self.played_cards.last().unwrap();
         card.is_playable_on(top_card)
     }
@@ -154,6 +165,7 @@ pub struct CurrentPlayerGameState {
     pub opponents: Vec<PlayerDTO>,
     pub winner: Option<i64>,
     pub deck_size: usize,
+    pub viable_actions: Vec<ViableAction>,
 }
 
 #[derive(Deserialize)]
@@ -166,4 +178,29 @@ pub struct CurrentPlayerGameStatePayload {
 #[serde(rename_all = "camelCase")]
 pub struct PlayCardPayload {
     pub card: CardDTO,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub enum ViableAction {
+    PlayCard(u8),
+    DrawCard,
+    DrawManyCards(u8),
+}
+
+impl Display for ViableAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let action = match self {
+            ViableAction::PlayCard(card_id) => {
+                let card: Card = STANARD_DECK
+                    .iter()
+                    .find(|card| card.id == *card_id)
+                    .unwrap()
+                    .clone();
+                format!("PlayCard({})", card)
+            }
+            ViableAction::DrawCard => "DrawCard".to_string(),
+            ViableAction::DrawManyCards(n) => format!("DrawManyCards({})", n),
+        };
+        write!(f, "{}", action)
+    }
 }

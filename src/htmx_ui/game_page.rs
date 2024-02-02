@@ -1,7 +1,7 @@
 use askama::Template;
 use serde::Deserialize;
 
-use crate::game::{card::CardDTO, player::PlayerDTO};
+use crate::game::{card::CardDTO, game::ViableAction, player::PlayerDTO};
 
 #[derive(Template)]
 #[template(path = "game.html")]
@@ -15,6 +15,7 @@ pub struct GameTemplate {
     play_card_route: String,
     num_cards_in_deck: usize,
     num_cards_played: usize,
+    viable_actions: Vec<ViableAction>,
 }
 
 #[derive(Deserialize)]
@@ -74,6 +75,7 @@ pub mod get {
             play_card_route: format!("/games/{}/play_card", game_id),
             num_cards_in_deck,
             num_cards_played,
+            viable_actions: current_player_game_state.viable_actions,
         }
         .into_response()
     }

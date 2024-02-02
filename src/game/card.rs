@@ -52,13 +52,24 @@ impl Display for Rank {
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Card {
+    pub id: u8,
     pub suit: Suit,
     pub rank: Rank,
 }
 
+impl Display for Card {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} of {}", self.rank, self.suit)
+    }
+}
+
 impl Card {
-    pub fn _new(suit: Suit, rank: Rank) -> Self {
-        Self { suit, rank }
+    pub fn new(suit: Suit, rank: Rank) -> Self {
+        STANARD_DECK
+            .iter()
+            .find(|card| card.suit == suit && card.rank == rank)
+            .unwrap()
+            .clone()
     }
 
     pub fn to_dto(&self) -> CardDTO {
@@ -72,6 +83,7 @@ impl Card {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CardDTO {
+    pub id: u8,
     pub suit: String,
     pub rank: String,
 }
@@ -79,6 +91,7 @@ pub struct CardDTO {
 impl CardDTO {
     pub fn new(card: Card) -> Self {
         Self {
+            id: card.id,
             suit: card.suit.to_string(),
             rank: card.rank.to_string(),
         }
@@ -105,11 +118,175 @@ impl CardDTO {
             _ => return Err(CardError::InvalidRank),
         };
 
-        Ok(Card { suit, rank })
+        Ok(Card::new(suit, rank))
     }
 }
 
+#[derive(Debug)]
 pub enum CardError {
     InvalidSuit,
     InvalidRank,
 }
+
+pub const STANARD_DECK: [Card; 32] = [
+    Card {
+        id: 0,
+        suit: Suit::Clubs,
+        rank: Rank::Seven,
+    },
+    Card {
+        id: 1,
+        suit: Suit::Clubs,
+        rank: Rank::Eight,
+    },
+    Card {
+        id: 2,
+        suit: Suit::Clubs,
+        rank: Rank::Nine,
+    },
+    Card {
+        id: 3,
+        suit: Suit::Clubs,
+        rank: Rank::Ten,
+    },
+    Card {
+        id: 4,
+        suit: Suit::Clubs,
+        rank: Rank::Jack,
+    },
+    Card {
+        id: 5,
+        suit: Suit::Clubs,
+        rank: Rank::Queen,
+    },
+    Card {
+        id: 6,
+        suit: Suit::Clubs,
+        rank: Rank::King,
+    },
+    Card {
+        id: 7,
+        suit: Suit::Clubs,
+        rank: Rank::Ace,
+    },
+    Card {
+        id: 8,
+        suit: Suit::Diamonds,
+        rank: Rank::Seven,
+    },
+    Card {
+        id: 9,
+        suit: Suit::Diamonds,
+        rank: Rank::Eight,
+    },
+    Card {
+        id: 10,
+        suit: Suit::Diamonds,
+        rank: Rank::Nine,
+    },
+    Card {
+        id: 11,
+        suit: Suit::Diamonds,
+        rank: Rank::Ten,
+    },
+    Card {
+        id: 12,
+        suit: Suit::Diamonds,
+        rank: Rank::Jack,
+    },
+    Card {
+        id: 13,
+        suit: Suit::Diamonds,
+        rank: Rank::Queen,
+    },
+    Card {
+        id: 14,
+        suit: Suit::Diamonds,
+        rank: Rank::King,
+    },
+    Card {
+        id: 15,
+        suit: Suit::Diamonds,
+        rank: Rank::Ace,
+    },
+    Card {
+        id: 16,
+        suit: Suit::Hearts,
+        rank: Rank::Seven,
+    },
+    Card {
+        id: 17,
+        suit: Suit::Hearts,
+        rank: Rank::Eight,
+    },
+    Card {
+        id: 18,
+        suit: Suit::Hearts,
+        rank: Rank::Nine,
+    },
+    Card {
+        id: 19,
+        suit: Suit::Hearts,
+        rank: Rank::Ten,
+    },
+    Card {
+        id: 20,
+        suit: Suit::Hearts,
+        rank: Rank::Jack,
+    },
+    Card {
+        id: 21,
+        suit: Suit::Hearts,
+        rank: Rank::Queen,
+    },
+    Card {
+        id: 22,
+        suit: Suit::Hearts,
+        rank: Rank::King,
+    },
+    Card {
+        id: 23,
+        suit: Suit::Hearts,
+        rank: Rank::Ace,
+    },
+    Card {
+        id: 24,
+        suit: Suit::Spades,
+        rank: Rank::Seven,
+    },
+    Card {
+        id: 25,
+        suit: Suit::Spades,
+        rank: Rank::Eight,
+    },
+    Card {
+        id: 26,
+        suit: Suit::Spades,
+        rank: Rank::Nine,
+    },
+    Card {
+        id: 27,
+        suit: Suit::Spades,
+        rank: Rank::Ten,
+    },
+    Card {
+        id: 28,
+        suit: Suit::Spades,
+        rank: Rank::Jack,
+    },
+    Card {
+        id: 29,
+        suit: Suit::Spades,
+        rank: Rank::Queen,
+    },
+    Card {
+        id: 30,
+        suit: Suit::Spades,
+        rank: Rank::King,
+    },
+    Card {
+        id: 31,
+        suit: Suit::Spades,
+        rank: Rank::Ace,
+    },
+];
