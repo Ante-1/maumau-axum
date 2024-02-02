@@ -14,19 +14,19 @@ pub struct GameTemplate {
     last_played_card: CardDTO,
     num_cards_in_deck: usize,
     num_cards_played: usize,
-    viable_actions: ActionsDTO,
+    viable_actions: ActionsToDisplay,
     handle_action_route: String,
 }
 
 #[derive(Debug)]
-pub struct ActionsDTO {
+pub struct ActionsToDisplay {
     pub playable_cards: Vec<u8>,
     pub draw_cards: Option<u8>,
     pub decide_suit: bool,
     pub end_turn: bool,
 }
 
-impl From<Vec<Action>> for ActionsDTO {
+impl From<Vec<Action>> for ActionsToDisplay {
     fn from(actions: Vec<Action>) -> Self {
         let mut playable_cards = vec![];
         let mut draw_cards = None;
@@ -47,6 +47,14 @@ impl From<Vec<Action>> for ActionsDTO {
             end_turn,
         }
     }
+}
+
+#[derive(Deserialize)]
+pub struct HandleActionParams {
+    pub play_card: Option<u8>,
+    pub draw_cards: Option<u8>,
+    pub decide_suit: Option<String>,
+    pub end_turn: bool,
 }
 
 #[derive(Deserialize)]
@@ -115,15 +123,17 @@ pub mod get {
 pub mod post {
     use std::sync::Arc;
 
-    use axum::extract::State;
+    use axum::extract::{Path, State};
     use axum::http::StatusCode;
     use axum::response::IntoResponse;
     use axum::Form;
 
     use crate::app_state::AppState;
-    use crate::game::game_handler_helpers::create_game;
+    use crate::auth::user::AuthSession;
+    use crate::game::game::Action;
+    use crate::game::game_handler_helpers::{calculate_viable_actions, create_game};
 
-    use super::StartGameParams;
+    use super::{HandleActionParams, StartGameParams};
 
     pub async fn create_game_handler(
         State(state): State<Arc<AppState>>,
@@ -138,5 +148,46 @@ pub mod post {
             StatusCode::CREATED,
         )
             .into_response()
+    }
+
+    pub async fn handle_action(
+        auth_session: AuthSession,
+        State(state): State<Arc<AppState>>,
+        Path(game_id): Path<i64>,
+        Form(action): Form<HandleActionParams>,
+    ) -> impl IntoResponse {
+        let mut games = state.get_games();
+        let game = match games.iter_mut().find(|game| game.id == game_id) {
+            Some(value) => value,
+            None => return (StatusCode::NOT_FOUND, "game not found").into_response(),
+        };
+        let user_id = match auth_session.user {
+            Some(user) => user.id,
+            None => return (StatusCode::UNAUTHORIZED, "unauthorized").into_response(),
+        };
+        if game.current_turn_player != user_id {
+            return (StatusCode::FORBIDDEN, "not your turn").into_response();
+        }
+        let player = match game
+            .players
+            .iter()
+            .find(|player| player.lobby_player.user_id == user_id)
+        {
+            Some(value) => value,
+            None => return (StatusCode::BAD_REQUEST, "player not found").into_response(),
+        };
+        let viable_actions = calculate_viable_actions(player, game);
+        let action: Action = match action.try_into() {
+            Ok(action) => action,
+            Err(_) => return (StatusCode::BAD_REQUEST, "invalid action").into_response(),
+        };
+        if !viable_actions.contains(&action) {
+            return (StatusCode::BAD_REQUEST, "invalid action").into_response();
+        }
+        match game.do_action(action, user_id) {
+            Ok(_) => (),
+            Err(_) => return (StatusCode::BAD_REQUEST, "invalid action").into_response(),
+        };
+        (StatusCode::OK, "action successful").into_response()
     }
 }

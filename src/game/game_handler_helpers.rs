@@ -110,7 +110,7 @@ pub fn get_game_state(
     Ok(game_state)
 }
 
-fn calculate_viable_actions(player: &Player, game: &Game) -> Vec<Action> {
+pub fn calculate_viable_actions(player: &Player, game: &Game) -> Vec<Action> {
     let playable_cards: Vec<u8> = player
         .hand
         .iter()

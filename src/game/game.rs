@@ -7,9 +7,14 @@ use crate::{
     game::card::{Card, CardDTO},
     game::deck::Deck,
     game::player::Player,
+    htmx_ui::game_page::HandleActionParams,
 };
 
-use super::{card::Suit, lobby::LobbyPlayer, player::PlayerDTO};
+use super::{
+    card::{CardError, Suit, EIGHTS_IDS, JACK_IDS},
+    lobby::LobbyPlayer,
+    player::PlayerDTO,
+};
 
 pub struct Game {
     pub id: i64,
@@ -135,6 +140,43 @@ impl Game {
         player.hand.extend(cards);
         Ok(())
     }
+
+    pub fn do_action(&mut self, action: Action, player_id: i64) -> Result<(), DoActionError> {
+        self.actions.push(PlayerAction {
+            action: action.clone(),
+            player_id,
+        });
+        match action {
+            Action::PlayCard(card_id) => {
+                let card: Card = card_id.try_into()?;
+                if EIGHTS_IDS.contains(&card_id) {
+                    self.play_card(card)?;
+                    self.next_player();
+                    self.next_player();
+                    Ok(())
+                } else if JACK_IDS.contains(&card_id) {
+                    self.play_card(card)?;
+                    Ok(())
+                } else {
+                    self.play_card(card)?;
+                    self.next_player();
+                    Ok(())
+                }
+            }
+            Action::DrawCards(n) => {
+                self.draw_many_cards(player_id, n as usize)?;
+                Ok(())
+            }
+            Action::DecideSuit(_) => {
+                self.next_player();
+                Ok(())
+            }
+            Action::CannotPlay => {
+                self.next_player();
+                Ok(())
+            }
+        }
+    }
 }
 
 pub enum PlayCardError {
@@ -199,5 +241,55 @@ impl Display for Action {
             Action::DecideSuit(suit) => write!(f, "Decide suit {}", suit),
             Action::CannotPlay => write!(f, "End turn"),
         }
+    }
+}
+
+impl TryFrom<HandleActionParams> for Action {
+    type Error = ParseActionError;
+
+    fn try_from(params: HandleActionParams) -> Result<Self, Self::Error> {
+        if let Some(card_id) = params.play_card {
+            Ok(Action::PlayCard(card_id))
+        } else if let Some(n) = params.draw_cards {
+            Ok(Action::DrawCards(n))
+        } else if let Some(suit) = params.decide_suit {
+            if let Ok(suit) = Suit::try_from(suit) {
+                return Ok(Action::DecideSuit(suit));
+            }
+            Err(ParseActionError::InvalidSuit)
+        } else if params.end_turn {
+            Ok(Action::CannotPlay)
+        } else {
+            Err(ParseActionError::InvalidAction)
+        }
+    }
+}
+
+pub enum ParseActionError {
+    InvalidAction,
+    InvalidSuit,
+}
+
+pub enum DoActionError {
+    CardError(CardError),
+    PlayCardError(PlayCardError),
+    DrawCardError(DrawCardError),
+}
+
+impl From<PlayCardError> for DoActionError {
+    fn from(err: PlayCardError) -> Self {
+        DoActionError::PlayCardError(err)
+    }
+}
+
+impl From<CardError> for DoActionError {
+    fn from(err: CardError) -> Self {
+        DoActionError::CardError(err)
+    }
+}
+
+impl From<DrawCardError> for DoActionError {
+    fn from(err: DrawCardError) -> Self {
+        DoActionError::DrawCardError(err)
     }
 }

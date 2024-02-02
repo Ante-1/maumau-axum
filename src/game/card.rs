@@ -10,6 +10,20 @@ pub enum Suit {
     Spades,
 }
 
+impl TryFrom<String> for Suit {
+    type Error = CardError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.as_str() {
+            "Clubs" => Ok(Suit::Clubs),
+            "Diamonds" => Ok(Suit::Diamonds),
+            "Hearts" => Ok(Suit::Hearts),
+            "Spades" => Ok(Suit::Spades),
+            _ => Err(CardError::InvalidSuit),
+        }
+    }
+}
+
 impl Display for Suit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let suit = match self {
@@ -122,10 +136,23 @@ impl CardDTO {
     }
 }
 
+impl TryFrom<u8> for Card {
+    type Error = CardError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        if value < 32 {
+            Ok(STANARD_DECK[value as usize].clone())
+        } else {
+            Err(CardError::InvalidIndex)
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum CardError {
     InvalidSuit,
     InvalidRank,
+    InvalidIndex,
 }
 
 pub const STANARD_DECK: [Card; 32] = [
