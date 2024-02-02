@@ -96,6 +96,7 @@ pub fn get_game_state(
         played_cards,
         opponents,
         winner: game.winner,
+        deck_size: game.deck_size(),
     };
     Ok(game_state)
 }

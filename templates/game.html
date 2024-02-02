@@ -18,16 +18,19 @@
       </div>
       {% endfor %}
     </div>
+    <p>Cards in Deck: {{ num_cards_in_deck }}</p>
+    <p>Played Cards: {{ num_cards_played }}</p>
     <div>
       <h2>Your Hand</h2>
       <div>
         {% for card in my_hand %}
-        <div id="{{ card.suit }} {{ card.rank }}">
+        <div id="{{ card.suit }}-{{ card.rank }}">
           <p>{{ card.suit }} {{ card.rank }}</p>
           <button
             hx-post="{{ play_card_route }}"
             hx-swap="outerHTML"
-            hx-target="#{{ card.suit }} {{ card.rank }}"
+            hx-trigger="click"
+            hx-target="#{{ card.suit }}-{{ card.rank }}"
             hx-vals='{"suit": "{{ card.suit }}", "rank": "{{ card.rank }}"}'
           >
             Play

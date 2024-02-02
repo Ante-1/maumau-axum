@@ -47,6 +47,12 @@ impl Deck {
     pub fn add_cards(&mut self, cards: Vec<Card>) {
         self.cards.extend(cards);
     }
+
+    pub fn shuffle_in(&mut self, new_cards: Vec<Card>) {
+        let mut rng = rand::thread_rng();
+        self.cards.extend(new_cards);
+        self.cards.shuffle(&mut rng);
+    }
 }
 
 impl Default for Deck {

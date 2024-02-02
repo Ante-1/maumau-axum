@@ -13,6 +13,8 @@ pub struct GameTemplate {
     winner: Option<PlayerDTO>,
     last_played_card: CardDTO,
     play_card_route: String,
+    num_cards_in_deck: usize,
+    num_cards_played: usize,
 }
 
 #[derive(Deserialize)]
@@ -55,6 +57,8 @@ pub mod get {
                 hand_size: 0,
             }
         });
+        let num_cards_in_deck = current_player_game_state.deck_size;
+        let num_cards_played = current_player_game_state.played_cards.len();
 
         GameTemplate {
             my_hand: current_player_game_state.hand,
@@ -68,6 +72,8 @@ pub mod get {
                 .unwrap()
                 .clone(),
             play_card_route: format!("/games/{}/play_card", game_id),
+            num_cards_in_deck,
+            num_cards_played,
         }
         .into_response()
     }
