@@ -1,11 +1,12 @@
+use std::fmt::Display;
+
 use rand::{seq::SliceRandom, thread_rng};
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
 
 use crate::{
     game::card::{Card, CardDTO},
+    game::deck::Deck,
     game::player::Player,
-    game::{card::STANARD_DECK, deck::Deck},
 };
 
 use super::{card::Suit, lobby::LobbyPlayer, player::PlayerDTO};
@@ -14,17 +15,16 @@ pub struct Game {
     pub id: i64,
     pub lobby_id: i64,
     deck: Deck,
-    pub played_cards: Vec<Card>,
+    pub discard_pile: Vec<Card>,
     pub current_turn_player: i64,
     pub winner: Option<i64>,
     pub players: Vec<Player>,
-    pub suit_decided_by_jack: Option<Suit>,
-    pub last_action: Option<LastAction>,
+    pub actions: Vec<PlayerAction>,
 }
 
-#[derive(PartialEq)]
-pub struct LastAction {
-    pub action: ViableAction,
+#[derive(PartialEq, Clone)]
+pub struct PlayerAction {
+    pub action: Action,
     pub player_id: i64,
 }
 
@@ -42,11 +42,10 @@ impl Game {
             lobby_id,
             id,
             deck: Deck::new(),
-            played_cards: vec![],
+            discard_pile: vec![],
             winner: None,
             players,
-            suit_decided_by_jack: None,
-            last_action: None,
+            actions: vec![],
         }
     }
 
@@ -63,11 +62,15 @@ impl Game {
 
     pub fn turn_top_card(&mut self) {
         let card = self.deck.draw().unwrap();
-        self.played_cards.push(card);
+        self.actions.push(PlayerAction {
+            action: Action::PlayCard(card.id),
+            player_id: -1,
+        });
+        self.discard_pile.push(card);
     }
 
     pub fn can_play_card(&self, card: &Card) -> bool {
-        let top_card = self.played_cards.last().unwrap();
+        let top_card = self.discard_pile.last().unwrap();
         card.is_playable_on(top_card)
     }
 
@@ -75,7 +78,7 @@ impl Game {
         if !self.can_play_card(&card) {
             return Err(PlayCardError::CouldNotPlayCard);
         }
-        self.played_cards.push(card);
+        self.discard_pile.push(card);
         Ok(())
     }
 
@@ -101,7 +104,7 @@ impl Game {
         if self.deck.is_empty() {
             // shuffle in all but the top card
             self.deck
-                .shuffle_in(self.played_cards[0..self.played_cards.len() - 2].to_vec());
+                .shuffle_in(self.discard_pile[0..self.discard_pile.len() - 2].to_vec());
             if self.deck.is_empty() {
                 return Err(DrawCardError::NoCardsLeft);
             }
@@ -123,7 +126,7 @@ impl Game {
         if self.deck.len() < n {
             // shuffle in all but the top card
             self.deck
-                .shuffle_in(self.played_cards[0..self.played_cards.len() - 2].to_vec());
+                .shuffle_in(self.discard_pile[0..self.discard_pile.len() - 2].to_vec());
             if self.deck.len() < n {
                 return Err(DrawCardError::NoCardsLeft);
             }
@@ -165,7 +168,7 @@ pub struct CurrentPlayerGameState {
     pub opponents: Vec<PlayerDTO>,
     pub winner: Option<i64>,
     pub deck_size: usize,
-    pub viable_actions: Vec<ViableAction>,
+    pub viable_actions: Vec<Action>,
 }
 
 #[derive(Deserialize)]
@@ -180,27 +183,21 @@ pub struct PlayCardPayload {
     pub card: CardDTO,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub enum ViableAction {
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub enum Action {
     PlayCard(u8),
-    DrawCard,
-    DrawManyCards(u8),
+    DrawCards(u8),
+    DecideSuit(Suit),
+    CannotPlay,
 }
 
-impl Display for ViableAction {
+impl Display for Action {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let action = match self {
-            ViableAction::PlayCard(card_id) => {
-                let card: Card = STANARD_DECK
-                    .iter()
-                    .find(|card| card.id == *card_id)
-                    .unwrap()
-                    .clone();
-                format!("PlayCard({})", card)
-            }
-            ViableAction::DrawCard => "DrawCard".to_string(),
-            ViableAction::DrawManyCards(n) => format!("DrawManyCards({})", n),
-        };
-        write!(f, "{}", action)
+        match self {
+            Action::PlayCard(card_id) => write!(f, "Play card {}", card_id),
+            Action::DrawCards(n) => write!(f, "Draw {} cards", n),
+            Action::DecideSuit(suit) => write!(f, "Decide suit {}", suit),
+            Action::CannotPlay => write!(f, "End turn"),
+        }
     }
 }

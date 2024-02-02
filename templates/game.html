@@ -19,30 +19,81 @@
       {% endfor %}
     </div>
     <p>Cards in Deck: {{ num_cards_in_deck }}</p>
+    {% if let Some(draw_cards) = viable_actions.draw_cards %}
+    <h2>draw</h2>
+    <button
+      hx-post="{{ handle_action_route }}"
+      hx-swap="outerHTML"
+      hx-trigger="click"
+      hx-target="#draw-card"
+      hx-vals='{"draw_cards": {{ draw_cards }}}'
+    >
+      Draw {{ draw_cards }} Card(s)
+    </button>
+    {% endif %}
     <p>Played Cards: {{ num_cards_played }}</p>
-    <p>
-      Your viable Actions: {% for viable_action in viable_actions %} {{
-      viable_action }} {% endfor %}
-    </p>
     <div>
       <h2>Your Hand</h2>
       <div>
         {% for card in my_hand %}
-        <div id="{{ card.id }}">
+        <div>
           <p>{{ card.suit }} {{ card.rank }}</p>
+          {% if viable_actions.playable_cards.contains(card.id) %}
           <button
-            hx-post="{{ play_card_route }}"
-            hx-swap="outerHTML"
+            hx-post="{{ handle_action_route }}"
             hx-trigger="click"
-            hx-target="#{{ card.id }}"
-            hx-vals='{"id": {{card.id}} }'
+            hx-vals='{"play_card": {{card.id}} }'
           >
             Play
           </button>
+          {% endif %}
         </div>
         {% endfor %}
       </div>
     </div>
+    {% if viable_actions.decide_suit %}
+    <div>
+      <h2>Decide Suit</h2>
+      <div>
+        <button
+          hx-post="{{ handle_action_route }}"
+          hx-trigger="click"
+          hx-vals='{"decide_suit": "hearts"}'
+        >
+          Hearts
+        </button>
+        <button
+          hx-post="{{ handle_action_route }}"
+          hx-trigger="click"
+          hx-vals='{"decide_suit": "diamonds"}'
+        >
+          Diamonds
+        </button>
+        <button
+          hx-post="{{ handle_action_route }}"
+          hx-trigger="click"
+          hx-vals='{"decide_suit": "clubs"}'
+        >
+          Clubs
+        </button>
+        <button
+          hx-post="{{ handle_action_route }}"
+          hx-trigger="click"
+          hx-vals='{"decide_suit": "spades"}'
+        >
+          Spades
+        </button>
+      </div>
+    </div>
+    {% endif %} {% if viable_actions.end_turn %}
+    <button
+      hx-post="{{ handle_action_route }}"
+      hx-trigger="click"
+      hx-vals='{"end_turn": true}'
+    >
+      End Turn
+    </button>
+    {% endif %}
     <div>
       <h2>Last played Card</h2>
       <div>

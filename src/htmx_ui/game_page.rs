@@ -1,9 +1,9 @@
 use askama::Template;
 use serde::Deserialize;
 
-use crate::game::{card::CardDTO, game::ViableAction, player::PlayerDTO};
+use crate::game::{card::CardDTO, game::Action, player::PlayerDTO};
 
-#[derive(Template)]
+#[derive(Template, Debug)]
 #[template(path = "game.html")]
 pub struct GameTemplate {
     my_hand: Vec<CardDTO>,
@@ -12,10 +12,41 @@ pub struct GameTemplate {
     is_my_turn: bool,
     winner: Option<PlayerDTO>,
     last_played_card: CardDTO,
-    play_card_route: String,
     num_cards_in_deck: usize,
     num_cards_played: usize,
-    viable_actions: Vec<ViableAction>,
+    viable_actions: ActionsDTO,
+    handle_action_route: String,
+}
+
+#[derive(Debug)]
+pub struct ActionsDTO {
+    pub playable_cards: Vec<u8>,
+    pub draw_cards: Option<u8>,
+    pub decide_suit: bool,
+    pub end_turn: bool,
+}
+
+impl From<Vec<Action>> for ActionsDTO {
+    fn from(actions: Vec<Action>) -> Self {
+        let mut playable_cards = vec![];
+        let mut draw_cards = None;
+        let mut decide_suit = false;
+        let mut end_turn = false;
+        for action in actions {
+            match action {
+                Action::PlayCard(card_id) => playable_cards.push(card_id),
+                Action::DrawCards(n) => draw_cards = Some(n),
+                Action::DecideSuit(_) => decide_suit = true,
+                Action::CannotPlay => end_turn = true,
+            }
+        }
+        Self {
+            playable_cards,
+            draw_cards,
+            decide_suit,
+            end_turn,
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -61,7 +92,7 @@ pub mod get {
         let num_cards_in_deck = current_player_game_state.deck_size;
         let num_cards_played = current_player_game_state.played_cards.len();
 
-        GameTemplate {
+        let game_template = GameTemplate {
             my_hand: current_player_game_state.hand,
             other_players: current_player_game_state.opponents,
             current_turn_player,
@@ -72,12 +103,12 @@ pub mod get {
                 .last()
                 .unwrap()
                 .clone(),
-            play_card_route: format!("/games/{}/play_card", game_id),
+            handle_action_route: format!("/games/{}/handle-action", game_id),
             num_cards_in_deck,
             num_cards_played,
-            viable_actions: current_player_game_state.viable_actions,
-        }
-        .into_response()
+            viable_actions: current_player_game_state.viable_actions.into(),
+        };
+        game_template.into_response()
     }
 }
 

@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub enum Suit {
     Clubs,
     Diamonds,
@@ -290,3 +290,7 @@ pub const STANARD_DECK: [Card; 32] = [
         rank: Rank::Ace,
     },
 ];
+
+pub const SEVENS_IDS: [u8; 4] = [0, 8, 16, 24];
+pub const EIGHTS_IDS: [u8; 4] = [1, 9, 17, 25];
+pub const JACK_IDS: [u8; 4] = [4, 12, 20, 28];

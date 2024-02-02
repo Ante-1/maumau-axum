@@ -4,12 +4,12 @@ use axum::{
 };
 use std::sync::Arc;
 
-use crate::{app_state::AppState, auth::user::AuthSession};
+use crate::{app_state::AppState, auth::user::AuthSession, game::card::Suit};
 
 use super::{
-    card::{CardDTO, Rank},
-    game::{CurrentPlayerGameState, Game, ViableAction},
-    player::PlayerDTO,
+    card::{CardDTO, Rank, JACK_IDS, SEVENS_IDS},
+    game::{Action, CurrentPlayerGameState, Game},
+    player::{Player, PlayerDTO},
 };
 
 pub fn create_game(state: Arc<AppState>, lobby_id: i64) -> Result<i64, Response> {
@@ -78,7 +78,7 @@ pub fn get_game_state(
         None => return Err((StatusCode::BAD_REQUEST, "player not found").into_response()),
     };
     let hand: Vec<CardDTO> = player.hand.iter().map(|card| card.to_dto()).collect();
-    let played_cards: Vec<CardDTO> = game.played_cards.iter().map(|card| card.to_dto()).collect();
+    let played_cards: Vec<CardDTO> = game.discard_pile.iter().map(|card| card.to_dto()).collect();
     let opponents = game
         .players
         .iter()
@@ -90,63 +90,12 @@ pub fn get_game_state(
         })
         .collect::<Vec<_>>();
 
-    let playable_cards: Vec<u8> = player
-        .hand
-        .iter()
-        .filter(|card| game.can_play_card(card))
-        .map(|card| card.id)
-        .collect();
-
-    // handle special cards
-    let last_played_card = game.played_cards.last().unwrap();
-    let mut viable_actions: Vec<ViableAction> = vec![];
-
-    let current_player_drew_2 = match &game.last_action {
-        Some(action) => {
-            action.action == ViableAction::DrawManyCards(2) && action.player_id == user_id
-        }
-        None => false,
-    };
-
-    if last_played_card.rank == Rank::Seven && !current_player_drew_2 {
-        let playable_sevens: Vec<u8> = player
-            .hand
-            .iter()
-            .filter(|card| card.rank == Rank::Seven)
-            .map(|card| card.id)
-            .collect();
-        if !playable_sevens.is_empty() {
-            playable_sevens.iter().for_each(|card_id| {
-                viable_actions.push(ViableAction::PlayCard(*card_id));
-            });
-        } else {
-            viable_actions.push(ViableAction::DrawManyCards(2));
-        }
-    } else if last_played_card.rank == Rank::Jack {
-        // last player decided to change suit to suit_decided_by_jack
-        let suit_decided_by_jack = game.suit_decided_by_jack.clone().unwrap();
-        let playable_cards: Vec<u8> = player
-            .hand
-            .iter()
-            .filter(|card| card.suit == suit_decided_by_jack)
-            .map(|card| card.id)
-            .collect();
-        if !playable_cards.is_empty() {
-            playable_cards.iter().for_each(|card_id| {
-                viable_actions.push(ViableAction::PlayCard(*card_id));
-            });
-        } else {
-            viable_actions.push(ViableAction::DrawCard);
-        }
-    } else if !playable_cards.is_empty() {
-        playable_cards.iter().for_each(|card_id| {
-            viable_actions.push(ViableAction::PlayCard(*card_id));
-        });
+    let my_turn = game.current_turn_player == user_id;
+    let viable_actions = if my_turn {
+        calculate_viable_actions(player, game)
     } else {
-        viable_actions.push(ViableAction::DrawCard);
-    }
-
-    // end of handling special cards
+        vec![]
+    };
 
     let game_state = CurrentPlayerGameState {
         game_id,
@@ -159,4 +108,103 @@ pub fn get_game_state(
         viable_actions,
     };
     Ok(game_state)
+}
+
+fn calculate_viable_actions(player: &Player, game: &Game) -> Vec<Action> {
+    let playable_cards: Vec<u8> = player
+        .hand
+        .iter()
+        .filter(|card| game.can_play_card(card))
+        .map(|card| card.id)
+        .collect();
+
+    let last_action = game.actions.last().cloned();
+
+    let viable_actions: Vec<Action> = match last_action
+        .expect("there should always be a last action")
+        .action
+    {
+        Action::PlayCard(card) => {
+            if SEVENS_IDS.contains(&card) {
+                let playable_sevens: Vec<u8> = player
+                    .hand
+                    .iter()
+                    .filter(|card| card.rank == Rank::Seven)
+                    .map(|card| card.id)
+                    .collect();
+                if !playable_sevens.is_empty() {
+                    playable_sevens
+                        .iter()
+                        .map(|card_id| Action::PlayCard(*card_id))
+                        .collect()
+                } else {
+                    let mut num_consecutive_sevens = 0;
+                    for action in game.actions.iter().rev() {
+                        if let Action::PlayCard(n) = action.action {
+                            if SEVENS_IDS.contains(&n) {
+                                num_consecutive_sevens += 1;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                    vec![Action::DrawCards(2 * num_consecutive_sevens)]
+                }
+            } else if JACK_IDS.contains(&card) {
+                vec![
+                    Action::DecideSuit(Suit::Hearts),
+                    Action::DecideSuit(Suit::Diamonds),
+                    Action::DecideSuit(Suit::Clubs),
+                    Action::DecideSuit(Suit::Spades),
+                ]
+            }
+            // eights are skipped auto matically
+            else if !playable_cards.is_empty() {
+                playable_cards
+                    .iter()
+                    .map(|card_id| Action::PlayCard(*card_id))
+                    .collect()
+            } else {
+                vec![Action::DrawCards(1)]
+            }
+        }
+        Action::DecideSuit(suit) => {
+            let playable_cards: Vec<u8> = player
+                .hand
+                .iter()
+                .filter(|card| card.suit == suit)
+                .map(|card| card.id)
+                .collect();
+            if !playable_cards.is_empty() {
+                playable_cards
+                    .iter()
+                    .map(|card_id| Action::PlayCard(*card_id))
+                    .collect()
+            } else {
+                vec![Action::DrawCards(1)]
+            }
+        }
+        Action::DrawCards(_) => {
+            if !playable_cards.is_empty() {
+                playable_cards
+                    .iter()
+                    .map(|card_id| Action::PlayCard(*card_id))
+                    .collect()
+            } else {
+                vec![Action::CannotPlay]
+            }
+        }
+        Action::CannotPlay => {
+            if !playable_cards.is_empty() {
+                playable_cards
+                    .iter()
+                    .map(|card_id| Action::PlayCard(*card_id))
+                    .collect()
+            } else {
+                vec![Action::DrawCards(1)]
+            }
+        }
+    };
+
+    viable_actions
 }
